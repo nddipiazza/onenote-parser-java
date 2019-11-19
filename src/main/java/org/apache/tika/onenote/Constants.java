@@ -139,4 +139,12 @@ public final class Constants {
         return "UnknownFND";
     }
   }
+
+  public static String getIndent(int indentLevel) {
+    String retval = "";
+    for (int i = 0; i < indentLevel; ++i) {
+      retval += "  ";
+    }
+    return retval;
+  }
 }

@@ -6,10 +6,6 @@ public class ObjectSpaceObjectPropSet {
   ObjectSpaceObjectStreamOfOIDsOSIDsOrContextIDs contextIDs = new ObjectSpaceObjectStreamOfOIDsOSIDsOrContextIDs();
   PropertySet body = new PropertySet();
 
-  public void print(OneNote document) {
-    body.print(document);
-  }
-
   public ObjectSpaceObjectStreamOfOIDsOSIDsOrContextIDs getOids() {
     return oids;
   }

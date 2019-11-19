@@ -1,10 +1,16 @@
 package org.apache.tika.onenote;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class FileNode {
+  private static final Logger LOG = LoggerFactory.getLogger(FileNode.class);
+
   long id; //10 bits
   long size; // 13 bits
   //base_type 0, ignore stp&cb 1, reference to data 2) reference to FileNodeList
@@ -158,5 +164,42 @@ public class FileNode {
   public FileNode setSubType(FileNodeUnion subType) {
     this.subType = subType;
     return this;
+  }
+
+  public void print(OneNote document, OneNotePtr pointer, int indentLevel) throws IOException {
+    boolean shouldPrintHeader = Constants.nameOf(id).contains("ObjectDec");
+    if (gosid.equals(ExtendedGUID.nil()) && shouldPrintHeader) {
+      LOG.debug("{}[beg {}]:{}\n", Constants.getIndent(indentLevel + 1), Constants.nameOf(id), gosid);
+    }
+    propertySet.print(document, pointer, indentLevel + 1);
+    if (!children.isEmpty()) {
+      if (shouldPrintHeader) {
+        LOG.debug("{}children\n", Constants.getIndent(indentLevel + 1));
+      }
+      for (FileNode child : children) {
+        child.print(document, pointer,indentLevel + 1);
+      }
+    }
+    if (id == Constants.RevisionRoleDeclarationFND
+        || id == Constants.RevisionRoleAndContextDeclarationFND) {
+      LOG.debug("{}[Revision Role {}]\n", Constants.getIndent(indentLevel + 1),
+          subType.revisionRoleDeclaration.revisionRole);
+
+    }
+    if (id == Constants.RevisionManifestStart4FND || id == Constants.RevisionManifestStart6FND
+        || id == Constants.RevisionManifestStart7FND) {
+      LOG.debug("{}[revisionRole {}]\n", Constants.getIndent(indentLevel + 1),
+          subType.revisionManifest.revisionRole);
+
+    }
+    if ((gctxid != ExtendedGUID.nil() || id == Constants.RevisionManifestStart7FND)
+			&& shouldPrintHeader) {
+      LOG.debug("{}[gctxid {}]\n", Constants.getIndent(indentLevel + 1), gctxid);
+    }
+    if (gosid != ExtendedGUID.nil() && shouldPrintHeader) {
+      LOG.debug("{}[end {}]:{}\n", Constants.getIndent(indentLevel + 1), Constants.nameOf(id),
+          gosid);
+
+    }
   }
 }

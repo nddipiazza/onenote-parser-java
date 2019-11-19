@@ -16,7 +16,9 @@ public class FileChunkReference {
     this.cb = cb;
   }
 
-  public static FileChunkReference NIL = new FileChunkReference(-1L, 0L);
+  public static FileChunkReference nil() {
+    return new FileChunkReference(-1L, 0L);
+  }
 
   @Override
   public String toString() {
