@@ -166,7 +166,7 @@ public class FileNode {
     return this;
   }
 
-  public void print(OneNote document, OneNotePtr pointer, int indentLevel) throws IOException {
+  public void print(OneNoteDocument document, OneNotePtr pointer, int indentLevel) throws IOException {
     boolean shouldPrintHeader = Constants.nameOf(id).contains("ObjectDec");
     if (gosid.equals(ExtendedGUID.nil()) && shouldPrintHeader) {
       LOG.debug("{}[beg {}]:{}\n", Constants.getIndent(indentLevel + 1), Constants.nameOf(id), gosid);

@@ -7,7 +7,7 @@ import java.util.Objects;
 public class PropertySet {
   List<PropertyValue> rgPridsData;
 
-  public void print(OneNote document, OneNotePtr pointer, int indentLevel) throws IOException {
+  public void print(OneNoteDocument document, OneNotePtr pointer, int indentLevel) throws IOException {
 
     for (PropertyValue child : rgPridsData) {
       child.print(document, pointer, indentLevel);

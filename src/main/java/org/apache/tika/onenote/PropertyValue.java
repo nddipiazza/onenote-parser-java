@@ -20,7 +20,7 @@ public class PropertyValue {
   PropertySet propertySet = new PropertySet(); // or used to house a single value
   FileChunkReference rawData = new FileChunkReference(); // FourBytesOfLengthFollowedByData
 
-  public void print(OneNote document, OneNotePtr pointer, int indentLevel) throws IOException {
+  public void print(OneNoteDocument document, OneNotePtr pointer, int indentLevel) throws IOException {
     boolean isRawText = true; //std::string(get_property_id_name(propertyID.id)).find("TextE")!=-1;
 
     if (isRawText) {

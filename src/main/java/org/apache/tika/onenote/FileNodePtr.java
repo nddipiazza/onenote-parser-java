@@ -2,10 +2,9 @@ package org.apache.tika.onenote;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileNodePtr {
-  List<AtomicInteger> offsets = new ArrayList<>();
+  List<Integer> offsets = new ArrayList<>();
 
   public FileNodePtr() {
 
@@ -15,13 +14,16 @@ public class FileNodePtr {
     offsets.addAll(copyFrom.offsets);
   }
 
-  public FileNode dereference(OneNote document) {
+  public FileNode dereference(OneNoteDocument document) {
     if (offsets.isEmpty()) {
       return null;
     }
-    FileNode cur = document.root.get(offsets.get(0).get());
+    if (offsets.get(0) >= document.root.size()) {
+      throw new RuntimeException("Exceeded root child size");
+    }
+    FileNode cur = document.root.get(offsets.get(0));
     for (int i = 1, ie = offsets.size(); i < ie; ++i) {
-      cur = cur.children.get(offsets.get(i).get());
+      cur = cur.children.get(offsets.get(i));
     }
     return cur;
   }

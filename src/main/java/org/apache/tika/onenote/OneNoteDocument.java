@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class OneNote {
+public class OneNoteDocument {
   List<ExtendedGUID> revisionListOrder = new ArrayList<>();
   Map<ExtendedGUID, Revision> revisionMap = new HashMap<>();
   Map<ExtendedGUID, FileNodePtr> revisionManifestLists = new HashMap<>();
@@ -20,7 +20,7 @@ public class OneNote {
   ExtendedGUID currentRevision = ExtendedGUID.nil();
   List<FileNode> root = new ArrayList<>();
   
-  public OneNote() {
+  public OneNoteDocument() {
 
   }
 
@@ -57,7 +57,7 @@ public class OneNote {
     return revisionListOrder;
   }
 
-  public OneNote setRevisionListOrder(List<ExtendedGUID> revisionListOrder) {
+  public OneNoteDocument setRevisionListOrder(List<ExtendedGUID> revisionListOrder) {
     this.revisionListOrder = revisionListOrder;
     return this;
   }
@@ -66,7 +66,7 @@ public class OneNote {
     return revisionMap;
   }
 
-  public OneNote setRevisionMap(Map<ExtendedGUID, Revision> revisionMap) {
+  public OneNoteDocument setRevisionMap(Map<ExtendedGUID, Revision> revisionMap) {
     this.revisionMap = revisionMap;
     return this;
   }
@@ -75,7 +75,7 @@ public class OneNote {
     return revisionManifestLists;
   }
 
-  public OneNote setRevisionManifestLists(Map<ExtendedGUID, FileNodePtr> revisionManifestLists) {
+  public OneNoteDocument setRevisionManifestLists(Map<ExtendedGUID, FileNodePtr> revisionManifestLists) {
     this.revisionManifestLists = revisionManifestLists;
     return this;
   }
@@ -84,7 +84,7 @@ public class OneNote {
     return guidToRef;
   }
 
-  public OneNote setGuidToRef(Map<ExtendedGUID, FileChunkReference> guidToRef) {
+  public OneNoteDocument setGuidToRef(Map<ExtendedGUID, FileChunkReference> guidToRef) {
     this.guidToRef = guidToRef;
     return this;
   }
@@ -93,7 +93,7 @@ public class OneNote {
     return guidToObject;
   }
 
-  public OneNote setGuidToObject(Map<ExtendedGUID, FileNodePtr> guidToObject) {
+  public OneNoteDocument setGuidToObject(Map<ExtendedGUID, FileNodePtr> guidToObject) {
     this.guidToObject = guidToObject;
     return this;
   }
@@ -102,7 +102,7 @@ public class OneNote {
     return revisionRoleMap;
   }
 
-  public OneNote setRevisionRoleMap(Multimap<ExtendedGUID, Pair<Long, ExtendedGUID>> revisionRoleMap) {
+  public OneNoteDocument setRevisionRoleMap(Multimap<ExtendedGUID, Pair<Long, ExtendedGUID>> revisionRoleMap) {
     this.revisionRoleMap = revisionRoleMap;
     return this;
   }
@@ -111,7 +111,7 @@ public class OneNote {
     return currentRevision;
   }
 
-  public OneNote setCurrentRevision(ExtendedGUID currentRevision) {
+  public OneNoteDocument setCurrentRevision(ExtendedGUID currentRevision) {
     this.currentRevision = currentRevision;
     return this;
   }
@@ -120,7 +120,7 @@ public class OneNote {
     return root;
   }
 
-  public OneNote setRoot(List<FileNode> root) {
+  public OneNoteDocument setRoot(List<FileNode> root) {
     this.root = root;
     return this;
   }

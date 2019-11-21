@@ -1,20 +1,18 @@
 package org.apache.tika.onenote;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class FileNodePtrBackPush {
   FileNodePtr parent;
+  public static int numAdds = 0;
+  public static int numDescs = 0;
 
   public FileNodePtrBackPush(FileNodePtr parent) {
     this.parent = parent;
-    this.parent.offsets.add(new AtomicInteger(0));
-  }
-
-  public void inc() {
-    parent.offsets.get(parent.offsets.size()-1).incrementAndGet();
+    this.parent.offsets.add(0);
+    ++numAdds;
   }
 
   public void dec() {
     parent.offsets.remove(parent.offsets.size()-1);
+    numDescs++;
   }
 }

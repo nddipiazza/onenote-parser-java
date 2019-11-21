@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,7 +18,7 @@ import static org.apache.tika.onenote.Constants.CanRevise.ObjectDeclarationWithR
 
 public class OneNotePtr {
 
-  private static final Logger LOG = LoggerFactory.getLogger(Parser.class);
+  private static final Logger LOG = LoggerFactory.getLogger(OneNoteParser.class);
 
   public static final long FOOTER_CONST = 0x8BC215C38233BA4BL;
   public static final String UNKNOWN = "unknown";
@@ -27,21 +27,21 @@ public class OneNotePtr {
   long offset;
   long end;
 
-  OneNote document;
-  FileChannel fc;
+  OneNoteDocument document;
+  SeekableByteChannel channel;
   InputStream in;
 
-  public OneNotePtr(OneNote document, InputStream in, FileChannel fc) throws IOException {
+  public OneNotePtr(OneNoteDocument document, InputStream in, SeekableByteChannel channel) throws IOException {
     this.document = document;
-    this.fc = fc;
+    this.channel = channel;
     this.in = in;
-    offset = fc.position();
-    end = fc.size();
+    offset = channel.position();
+    end = channel.size();
   }
 
   public OneNotePtr(OneNotePtr oneNotePtr) {
     this.document = oneNotePtr.document;
-    this.fc = oneNotePtr.fc;
+    this.channel = oneNotePtr.channel;
     this.in = oneNotePtr.in;
     this.offset = oneNotePtr.offset;
     this.end = oneNotePtr.end;
@@ -96,37 +96,37 @@ public class OneNotePtr {
     for (int i = 0; i < 16; ++i) {
       guid[i] = in.read();
     }
-    offset = fc.position();
+    offset = channel.position();
     return new GUID(guid);
   }
 
   private byte[] deserializedReservedHeader() throws IOException {
-    if (fc.position() != offset) {
-      fc.position(offset);
+    if (channel.position() != offset) {
+      channel.position(offset);
     }
     byte [] data = new byte[728];
     IOUtils.read(in, data);
-    offset = fc.position();
+    offset = channel.position();
     return data;
   }
 
   private FileChunkReference deserializeFileChunkReference64() throws IOException {
     long stp = deserializeLittleEndianInt();
     long cb = deserializeLittleEndianInt();
-    offset = fc.position();
+    offset = channel.position();
     return new FileChunkReference(stp, cb);
   }
 
   private FileChunkReference deserializeFileChunkReference64x32() throws IOException {
     long stp = deserializeLittleEndianLong();
     long cb = deserializeLittleEndianInt();
-    offset = fc.position();
+    offset = channel.position();
     return new FileChunkReference(stp, cb);
   }
 
   private char deserializeLittleEndianChar() throws IOException {
-    if (fc.position() != offset) {
-      fc.position(offset);
+    if (channel.position() != offset) {
+      channel.position(offset);
     }
     char res = (char) in.read();
     ++offset;
@@ -134,32 +134,32 @@ public class OneNotePtr {
   }
 
   private long deserializeLittleEndianInt() throws IOException {
-    if (fc.position() != offset) {
-      fc.position(offset);
+    if (channel.position() != offset) {
+      channel.position(offset);
     }
     long res = EndianUtils.readSwappedUnsignedInteger(in);
-    offset = fc.position();
+    offset = channel.position();
     return res;
   }
 
   private long deserializeLittleEndianLong() throws IOException {
-    if (fc.position() != offset) {
-      fc.position(offset);
+    if (channel.position() != offset) {
+      channel.position(offset);
     }
     long res = EndianUtils.readSwappedLong(in);
-    offset = fc.position();
+    offset = channel.position();
     return res;
   }
 
   private long deserializeLittleEndianShort() throws IOException {
-    if (fc.position() != offset) {
-      fc.position(offset);
+    if (channel.position() != offset) {
+      channel.position(offset);
     }
     int c1 = in.read();
     int c2 = in.read();
     long res = ( ( ( c1 & 0xff ) << 0 ) +
         ( ( c2 & 0xff ) << 8 ) );
-    offset = fc.position();
+    offset = channel.position();
     return res;
   }
 
@@ -178,11 +178,11 @@ public class OneNotePtr {
 
   private void reposition(long offset) throws IOException {
     this.offset = offset;
-    fc.position(offset);
+    channel.position(offset);
   }
 
   public OneNotePtr internalDeserializeFileNodeList(OneNotePtr ptr, List<FileNode> fileNodeList, FileNodePtr curPath) throws IOException {
-    OneNotePtr localPtr = new OneNotePtr(document, in, fc);
+    OneNotePtr localPtr = new OneNotePtr(document, in, channel);
     FileNodePtrBackPush bp = new FileNodePtrBackPush(curPath);
     try {
       while (true) {
@@ -222,7 +222,8 @@ public class OneNotePtr {
         FileNode dereference = curPath.dereference(document);
         FileNode lastChild = data.get(data.size() - 1);
         assert dereference.equals(lastChild); // is this correct? or should we be checking the pointer?
-        curPath.offsets.get(curPath.offsets.size()-1).incrementAndGet();
+        Integer curPathOffset = curPath.offsets.get(curPath.offsets.size() - 1);
+        curPath.offsets.set(curPath.offsets.size() - 1, curPathOffset + 1);
       } finally {
         pushBack.popBackIfNotCommitted();
       }
@@ -299,6 +300,7 @@ public class OneNotePtr {
       idDesc = "gosid";
       FileNodePtr parentPath = new FileNodePtr(curPath);
       parentPath.offsets.remove(parentPath.offsets.size() - 1);
+      FileNodePtrBackPush.numDescs++;
       document.registerRevisionManifestList(data.gosid, parentPath);
 
       //LOG.debug("{}gosid {}\n", getIndent(),data.gosid.toString().c_str());
@@ -741,7 +743,7 @@ public class OneNotePtr {
 
   private void postprocessObjectDeclarationContents(FileNode data, FileNodePtr curPtr) throws IOException {
     data.gosid = data.subType.objectDeclarationWithRefCount.body.oid.guid;
-    document.guidToObject.put(data.gosid, curPtr);
+    document.guidToObject.put(data.gosid, new FileNodePtr(curPtr));
     if (data.subType.objectDeclarationWithRefCount.body.jcid.isPropertySet) {
       OneNotePtr objectSpacePropSetPtr = new OneNotePtr(this);
       objectSpacePropSetPtr.reposition(data.ref);
@@ -982,5 +984,9 @@ public class OneNotePtr {
     byte [] buffer = new byte[(int)(end - offset)];
     IOUtils.readFully(in, buffer);
     LOG.debug(Hex.encodeHexString(buffer));
+  }
+
+  public int size() {
+    return (int)(end - offset);
   }
 }
