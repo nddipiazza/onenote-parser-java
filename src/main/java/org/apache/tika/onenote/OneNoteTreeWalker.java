@@ -116,7 +116,9 @@ public class OneNoteTreeWalker implements AutoCloseable {
     for (FileNode child : fileNode.children) {
       children.add(walkFileNode(child));
     }
-    structure.put("children", children);
+    if (!children.isEmpty()) {
+      structure.put("children", children);
+    }
     List<Map<String, Object>> propSet = processPropertySet(fileNode.propertySet);
     if (!propSet.isEmpty()) {
       structure.put("propertySet", propSet);
