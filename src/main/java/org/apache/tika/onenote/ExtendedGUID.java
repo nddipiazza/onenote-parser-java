@@ -43,10 +43,7 @@ public class ExtendedGUID implements Comparable<ExtendedGUID> {
 
   @Override
   public String toString() {
-    return "ExtendedGUID{" +
-      "guid=" + guid +
-      ", n=" + n +
-      '}';
+    return String.format("%s [%d]", guid, n);
   }
 
   public GUID getGuid() {

@@ -169,12 +169,12 @@ public class FileNode {
   public void print(OneNoteDocument document, OneNotePtr pointer, int indentLevel) throws IOException {
     boolean shouldPrintHeader = Constants.nameOf(id).contains("ObjectDec");
     if (gosid.equals(ExtendedGUID.nil()) && shouldPrintHeader) {
-      LOG.debug("{}[beg {}]:{}\n", Constants.getIndent(indentLevel + 1), Constants.nameOf(id), gosid);
+      LOG.debug("{}[beg {}]:{}", Constants.getIndent(indentLevel + 1), Constants.nameOf(id), gosid);
     }
     propertySet.print(document, pointer, indentLevel + 1);
     if (!children.isEmpty()) {
       if (shouldPrintHeader) {
-        LOG.debug("{}children\n", Constants.getIndent(indentLevel + 1));
+        LOG.debug("{}children", Constants.getIndent(indentLevel + 1));
       }
       for (FileNode child : children) {
         child.print(document, pointer,indentLevel + 1);
@@ -182,22 +182,22 @@ public class FileNode {
     }
     if (id == Constants.RevisionRoleDeclarationFND
         || id == Constants.RevisionRoleAndContextDeclarationFND) {
-      LOG.debug("{}[Revision Role {}]\n", Constants.getIndent(indentLevel + 1),
+      LOG.debug("{}[Revision Role {}]", Constants.getIndent(indentLevel + 1),
           subType.revisionRoleDeclaration.revisionRole);
 
     }
     if (id == Constants.RevisionManifestStart4FND || id == Constants.RevisionManifestStart6FND
         || id == Constants.RevisionManifestStart7FND) {
-      LOG.debug("{}[revisionRole {}]\n", Constants.getIndent(indentLevel + 1),
+      LOG.debug("{}[revisionRole {}]", Constants.getIndent(indentLevel + 1),
           subType.revisionManifest.revisionRole);
 
     }
     if ((gctxid != ExtendedGUID.nil() || id == Constants.RevisionManifestStart7FND)
 			&& shouldPrintHeader) {
-      LOG.debug("{}[gctxid {}]\n", Constants.getIndent(indentLevel + 1), gctxid);
+      LOG.debug("{}[gctxid {}]", Constants.getIndent(indentLevel + 1), gctxid);
     }
     if (gosid != ExtendedGUID.nil() && shouldPrintHeader) {
-      LOG.debug("{}[end {}]:{}\n", Constants.getIndent(indentLevel + 1), Constants.nameOf(id),
+      LOG.debug("{}[end {}]:{}", Constants.getIndent(indentLevel + 1), Constants.nameOf(id),
           gosid);
 
     }

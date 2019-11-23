@@ -1,7 +1,6 @@
 package org.apache.tika.onenote;
 
 import java.util.Arrays;
-import java.util.List;
 
 public class GUID implements Comparable<GUID> {
   int[] guid;
@@ -48,7 +47,7 @@ public class GUID implements Comparable<GUID> {
 
   @Override
   public String toString() {
-    return "[" + Arrays.toString(guid) + "]";
+    return Arrays.toString(guid);
   }
 
   public static GUID nil() {

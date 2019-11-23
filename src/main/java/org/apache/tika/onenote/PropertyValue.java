@@ -11,7 +11,7 @@ public class PropertyValue {
 
   private static final Logger LOG = LoggerFactory.getLogger(PropertyValue.class);
 
-  PropertyID propertyID = new PropertyID();
+  PropertyID propertyId = new PropertyID();
   // union of one of these things based on the type of the corresponding PropertyID
   long scalar; // holds a boolean value if type = 0x2, retrieved from header
   // either ObjectID or ObjectSpaceID or ContextID (single value in array)
@@ -21,17 +21,17 @@ public class PropertyValue {
   FileChunkReference rawData = new FileChunkReference(); // FourBytesOfLengthFollowedByData
 
   public void print(OneNoteDocument document, OneNotePtr pointer, int indentLevel) throws IOException {
-    boolean isRawText = true; //std::string(get_property_id_name(propertyID.id)).find("TextE")!=-1;
+    boolean isRawText = true; //std::string(get_property_id_name(propertyId.id)).find("TextE")!=-1;
 
     if (isRawText) {
       LOG.debug("{}<{}", Constants.getIndent(indentLevel + 1),
-          Properties.nameOf(propertyID.id));
+          Properties.nameOf(propertyId.id));
     }
-    if (propertyID.type > 0 && propertyID.type <= 6) {
+    if (propertyId.type > 0 && propertyId.type <= 6) {
       if (isRawText) {
         LOG.debug("(%d)", scalar);
       }
-    } else if (propertyID.type == 7) {
+    } else if (propertyId.type == 7) {
       OneNotePtr content = new OneNotePtr(pointer);
       content.reposition(rawData);
       if (isRawText) {
@@ -39,45 +39,45 @@ public class PropertyValue {
         content.dumpHex();
         LOG.debug("]");
       }
-    } else if (propertyID.type == 0x9 || propertyID.type == 0x8
-        || propertyID.type == 0xb || propertyID.type == 0xc
-        || propertyID.type == 0xa || propertyID.type == 0xd) {
+    } else if (propertyId.type == 0x9 || propertyId.type == 0x8
+        || propertyId.type == 0xb || propertyId.type == 0xc
+        || propertyId.type == 0xa || propertyId.type == 0xd) {
 		String xtype = "contextID";
-      if (propertyID.type == 0x8 || propertyID.type == 0x9) {
+      if (propertyId.type == 0x8 || propertyId.type == 0x9) {
         xtype = "OIDs";
       }
-      if (propertyID.type == 0xa || propertyID.type == 0xb) {
+      if (propertyId.type == 0xa || propertyId.type == 0xb) {
         xtype = "OSIDS";
       }
       if (isRawText) {
         if (!compactIDs.isEmpty()) {
-          LOG.debug("\n");
+          LOG.debug("");
         }
         for (CompactID compactID : compactIDs) {
-          LOG.debug("{}{}[{}]\n", Constants.getIndent(indentLevel + 1), xtype, compactID);
+          LOG.debug("{}{}[{}]", Constants.getIndent(indentLevel + 1), xtype, compactID);
           FileNodePtr where = document.guidToObject.get(compactID.guid);
           if (where != null) {
             where.dereference(document).print(document, pointer,indentLevel + 1);
           }
         }
       }
-    } else if (propertyID.type == 0x10 || propertyID.type == 0x11) {
+    } else if (propertyId.type == 0x10 || propertyId.type == 0x11) {
       if (isRawText) {
-        LOG.debug("SubProperty\n");
+        LOG.debug("SubProperty");
       }
       propertySet.print(document, pointer, indentLevel + 1);
     }
     if (isRawText) {
-      LOG.debug(">\n");
+      LOG.debug(">");
     }
   }
 
-  public PropertyID getPropertyID() {
-    return propertyID;
+  public PropertyID getPropertyId() {
+    return propertyId;
   }
 
-  public PropertyValue setPropertyID(PropertyID propertyID) {
-    this.propertyID = propertyID;
+  public PropertyValue setPropertyId(PropertyID propertyId) {
+    this.propertyId = propertyId;
     return this;
   }
 

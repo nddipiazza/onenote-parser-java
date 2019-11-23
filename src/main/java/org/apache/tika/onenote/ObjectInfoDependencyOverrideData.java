@@ -1,13 +1,15 @@
 package org.apache.tika.onenote;
 
+import com.google.common.collect.Lists;
+
 import java.util.List;
 
 public class ObjectInfoDependencyOverrideData {
   long c8bitOverrides;
   long c32bitOverrides;
   long crc;
-  List<Integer> overrides1;
-  List<Long> overrides2;
+  List<Integer> overrides1 = Lists.newArrayList();
+  List<Long> overrides2 = Lists.newArrayList();
 
   public long getC8bitOverrides() {
     return c8bitOverrides;
