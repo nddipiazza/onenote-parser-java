@@ -137,17 +137,15 @@ public class OneNoteTreeWalker implements AutoCloseable {
   private Map<String, Object> processPropertyValue(PropertyValue propertyValue) throws IOException {
     Map<String, Object> propMap = new HashMap<>();
     propMap.put("propertyId", propertyValue.propertyId.toString());
-    if (propertyValue.propertyId.type > 0 && propertyValue.propertyId.type <= 6) {
+    if (OneNotePropertyEnum.getType(propertyValue.propertyId) > 0 && OneNotePropertyEnum.getType(propertyValue.propertyId) <= 6) {
       propMap.put("scalar", propertyValue.scalar);
-    } else if (propertyValue.propertyId.type == 7) {
+    } else if (OneNotePropertyEnum.getType(propertyValue.propertyId) == 7) {
       OneNotePtr content = new OneNotePtr(oneNoteDocument, in, channel);
       content.reposition(propertyValue.rawData);
-      boolean isBinary = (propertyValue.propertyId.id
-          == (Properties.RgOutlineIndentDistance & 0xffff))
-          || (propertyValue.propertyId.id
-          == (Properties.NotebookManagementEntityGuid & 0xffff));
+      boolean isBinary = propertyValue.propertyId == OneNotePropertyEnum.RgOutlineIndentDistance ||
+          propertyValue.propertyId == OneNotePropertyEnum.NotebookManagementEntityGuid;
       if ((content.size() & 1) == 0
-          && propertyValue.propertyId.id != (Properties.TextExtendedAscii & 0xffff)
+          && propertyValue.propertyId != OneNotePropertyEnum.TextExtendedAscii
           && isBinary == false) {
         byte[] buf = new byte[content.size()];
         IOUtils.readFully(in, buf);
@@ -164,9 +162,9 @@ public class OneNoteTreeWalker implements AutoCloseable {
         propMap.put("dataB64", Base64.encodeBase64String(buf));
         propMap.put("dataUnicode16LE", new String(buf, StandardCharsets.UTF_16LE));
       }
-    } else if (propertyValue.propertyId.type == 0x9 || propertyValue.propertyId.type == 0x8
-        || propertyValue.propertyId.type == 0xb || propertyValue.propertyId.type == 0xc
-        || propertyValue.propertyId.type == 0xa || propertyValue.propertyId.type == 0xd) {
+    } else if (OneNotePropertyEnum.getType(propertyValue.propertyId) == 0x9 || OneNotePropertyEnum.getType(propertyValue.propertyId) == 0x8
+        || OneNotePropertyEnum.getType(propertyValue.propertyId) == 0xb || OneNotePropertyEnum.getType(propertyValue.propertyId) == 0xc
+        || OneNotePropertyEnum.getType(propertyValue.propertyId) == 0xa || OneNotePropertyEnum.getType(propertyValue.propertyId) == 0xd) {
       List<Map<String, Object>> children = new ArrayList<>();
       for (CompactID compactID : propertyValue.compactIDs) {
         FileNodePtr childFileNodePointer = oneNoteDocument.guidToObject.get(compactID.guid);
@@ -175,7 +173,7 @@ public class OneNoteTreeWalker implements AutoCloseable {
       if (!children.isEmpty()) {
         propMap.put("children", children);
       }
-    } else if (propertyValue.propertyId.type == 0x10 || propertyValue.propertyId.type == 0x11) {
+    } else if (OneNotePropertyEnum.getType(propertyValue.propertyId) == 0x10 || OneNotePropertyEnum.getType(propertyValue.propertyId) == 0x11) {
       List<Map<String, Object>> propSet = processPropertySet(propertyValue.propertySet);
       if (!propSet.isEmpty()) {
         propMap.put("propertySet", propSet);
