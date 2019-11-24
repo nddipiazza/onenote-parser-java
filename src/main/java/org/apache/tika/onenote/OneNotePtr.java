@@ -786,7 +786,7 @@ public class OneNotePtr {
 
   }
 
-  private PropertyValue deserializePropertyValueFromPropertyID(PropertyID propertyID, ObjectSpaceObjectPropSet streams, ObjectStreamCounters counters) throws IOException {
+  private PropertyValue deserializePropertyValueFromPropertyID(OneNotePropertyId propertyID, ObjectSpaceObjectPropSet streams, ObjectStreamCounters counters) throws IOException {
     PropertyValue data = new PropertyValue();
     data.propertyId = propertyID;
     char val8;
@@ -794,20 +794,19 @@ public class OneNotePtr {
     long val32 = 0;
     long val64;
     if (LOG.isDebugEnabled()) {
-      long id = propertyID.id;
-      String retval = Properties.nameOf(id);
-      LOG.debug("\n{}<{}", getIndent(), retval);      
+      LOG.debug("\n{}<{}", getIndent(), propertyID);
     }
 
     ++indentLevel;
     try {
-      switch ((int)propertyID.type) {
+      long type = propertyID.type;
+      switch ((int) type) {
         case 0x1:
           LOG.debug(" [] ");
           return data;
         case 0x2:
-          LOG.debug(" PropertyID bool({})", propertyID.inline_bool);
-          data.scalar = propertyID.inline_bool ? 1 : 0;
+          LOG.debug(" PropertyID bool({})", propertyID.inlineBool);
+          data.scalar = propertyID.inlineBool ? 1 : 0;
           return data;
         case 0x3:
           val8 = deserializeLittleEndianChar();
@@ -830,6 +829,16 @@ public class OneNotePtr {
           LOG.debug(" PropertyID long({})", data.scalar);
           break;
         case 0x7:
+          // If the value of the PropertyID.type element is "0x7" and the property specifies an array of elements, the value of the
+          // prtFourBytesOfLengthFollowedByData.cb element MUST be the sum of the sizes, in bytes, of each element in the array.
+          // Exceptions include:
+          // * The RgOutlineIndentDistance element, where the value of the prtFourBytesOfLengthFollowedByData.cb element
+          // MUST be: 4 + (4 × RgOutlineIndentDistance.count).
+          // * The TableColumnsLocked element, where the value of the prtFourBytesOfLengthFollowedByData.cb
+          // element MUST be: 1 + (TableColumnsLocked.cColumns + 7) / 8.
+          // * The TableColumnWidths element, where the value of the prtFourBytesOfLengthFollowedByData.cb
+          // element MUST be: 1 + (4 × TableColumnWidths.cColumns).
+
           val32 = deserializeLittleEndianInt();
           LOG.debug(" raw data: ({})[", val32);
         {
@@ -858,20 +867,20 @@ public class OneNotePtr {
         case 0x8:
         case 0xa:
         case 0xc:
-          if (propertyID.type == 0x8 || propertyID.type == 0xa
-              || propertyID.type == 0xc) {
+          if (type == 0x8 || type == 0xa
+              || type == 0xc) {
             val32 = 1;
           }
         {
           List<CompactID> stream = streams.contextIDs.data;
           String xtype = "contextID";
           long s_count = counters.context_ids_count;
-          if (propertyID.type == 0x8 || propertyID.type == 0x9) {
+          if (type == 0x8 || type == 0x9) {
             stream = streams.oids.data;
             s_count = counters.oids_count;
             xtype = "OIDs";
           }
-          if (propertyID.type == 0xa || propertyID.type == 0xb) {
+          if (type == 0xa || type == 0xb) {
             stream = streams.osids.data;
             s_count = counters.osids_count;
             xtype = "OSIDS";
@@ -891,14 +900,14 @@ public class OneNotePtr {
         case 0x10:
           val32 = deserializeLittleEndianInt();
         {
-          PropertyID prop_id = deserializePropertyID();
-          LOG.debug(" UnifiedSubPropertySet {} {}", val32, prop_id);
+          OneNotePropertyId propId = deserializePropertyID();
+          LOG.debug(" UnifiedSubPropertySet {} {}", val32, propId);
           data.propertySet.rgPridsData = Stream.generate(PropertyValue::new)
               .limit((int)val32)
               .collect(Collectors.toList());
           for (int i = 0; i < val32; ++i) {
             try {
-              data.propertySet.rgPridsData.set(i, deserializePropertyValueFromPropertyID(prop_id, streams, counters));
+              data.propertySet.rgPridsData.set(i, deserializePropertyValueFromPropertyID(propId, streams, counters));
             } catch (IOException e) {
               return data;
             }
@@ -910,7 +919,7 @@ public class OneNotePtr {
           data.propertySet = deserializePropertySet(counters, streams);
           break;
         default:
-          throw new RuntimeException("Invalid propertyId.type: " + propertyID.type);
+          throw new RuntimeException("Invalid type: " + type);
       }
       LOG.debug(">");
       return data;
@@ -919,20 +928,9 @@ public class OneNotePtr {
     }
   }
 
-  private PropertyID deserializePropertyID() throws IOException {
-    PropertyID data = new PropertyID();
-
+  private OneNotePropertyId deserializePropertyID() throws IOException {
     long pid = deserializeLittleEndianInt();
-    data.id = (pid & 0x3ffffff);
-    data.type = pid >> 26 & 0x1f;
-    if (data.type == 0x2) {
-      data.inline_bool = ((pid >> 31) & 0x1) > 0; // set the bool value from header
-    } else {
-      if (((pid >> 31) & 0x1) > 0) {
-        throw new RuntimeException("Reserved non-zero");
-      }
-    }
-    return data;
+    return new OneNotePropertyId(pid);
   }
 
   private ObjectSpaceObjectPropSet deserializeObjectSpaceObjectPropSet() throws IOException {

@@ -142,12 +142,10 @@ public class OneNoteTreeWalker implements AutoCloseable {
     } else if (propertyValue.propertyId.type == 7) {
       OneNotePtr content = new OneNotePtr(oneNoteDocument, in, channel);
       content.reposition(propertyValue.rawData);
-      boolean isBinary = (propertyValue.propertyId.id
-          == (Properties.RgOutlineIndentDistance & 0xffff))
-          || (propertyValue.propertyId.id
-          == (Properties.NotebookManagementEntityGuid & 0xffff));
+      boolean isBinary = propertyValue.propertyId.propertyEnum == OneNotePropertyEnum.RgOutlineIndentDistance ||
+          propertyValue.propertyId.propertyEnum == OneNotePropertyEnum.NotebookManagementEntityGuid;
       if ((content.size() & 1) == 0
-          && propertyValue.propertyId.id != (Properties.TextExtendedAscii & 0xffff)
+          && propertyValue.propertyId.propertyEnum != OneNotePropertyEnum.TextExtendedAscii
           && isBinary == false) {
         byte[] buf = new byte[content.size()];
         IOUtils.readFully(in, buf);
