@@ -11,7 +11,7 @@ public class PropertyValue {
 
   private static final Logger LOG = LoggerFactory.getLogger(PropertyValue.class);
 
-  OneNotePropertyEnum propertyId = OneNotePropertyEnum.Unknown;
+  OneNotePropertyId propertyId = new OneNotePropertyId();
   // union of one of these things based on the type of the corresponding PropertyID
   long scalar; // holds a boolean value if type = 0x2, retrieved from header
   // either ObjectID or ObjectSpaceID or ContextID (single value in array)
@@ -23,7 +23,7 @@ public class PropertyValue {
   public void print(OneNoteDocument document, OneNotePtr pointer, int indentLevel) throws IOException {
     boolean isRawText = true; //std::string(get_property_id_name(propertyId.id)).find("TextE")!=-1;
 
-    long type = OneNotePropertyEnum.getType(propertyId);
+    long type = propertyId.type;
 
     if (isRawText) {
       LOG.debug("{}<{}", Constants.getIndent(indentLevel + 1), propertyId);
@@ -73,11 +73,11 @@ public class PropertyValue {
     }
   }
 
-  public OneNotePropertyEnum getPropertyId() {
+  public OneNotePropertyId getPropertyId() {
     return propertyId;
   }
 
-  public PropertyValue setPropertyId(OneNotePropertyEnum propertyId) {
+  public PropertyValue setPropertyId(OneNotePropertyId propertyId) {
     this.propertyId = propertyId;
     return this;
   }

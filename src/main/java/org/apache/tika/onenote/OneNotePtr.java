@@ -786,7 +786,7 @@ public class OneNotePtr {
 
   }
 
-  private PropertyValue deserializePropertyValueFromPropertyID(OneNotePropertyEnum propertyID, ObjectSpaceObjectPropSet streams, ObjectStreamCounters counters) throws IOException {
+  private PropertyValue deserializePropertyValueFromPropertyID(OneNotePropertyId propertyID, ObjectSpaceObjectPropSet streams, ObjectStreamCounters counters) throws IOException {
     PropertyValue data = new PropertyValue();
     data.propertyId = propertyID;
     char val8;
@@ -799,14 +799,14 @@ public class OneNotePtr {
 
     ++indentLevel;
     try {
-      long type = OneNotePropertyEnum.getType(propertyID);
+      long type = propertyID.type;
       switch ((int) type) {
         case 0x1:
           LOG.debug(" [] ");
           return data;
         case 0x2:
-          LOG.debug(" PropertyID bool({})", OneNotePropertyEnum.getInlineBool(propertyID));
-          data.scalar = OneNotePropertyEnum.getInlineBool(propertyID) ? 1 : 0;
+          LOG.debug(" PropertyID bool({})", propertyID.inlineBool);
+          data.scalar = propertyID.inlineBool ? 1 : 0;
           return data;
         case 0x3:
           val8 = deserializeLittleEndianChar();
@@ -829,6 +829,16 @@ public class OneNotePtr {
           LOG.debug(" PropertyID long({})", data.scalar);
           break;
         case 0x7:
+          // If the value of the PropertyID.type element is "0x7" and the property specifies an array of elements, the value of the
+          // prtFourBytesOfLengthFollowedByData.cb element MUST be the sum of the sizes, in bytes, of each element in the array.
+          // Exceptions include:
+          // * The RgOutlineIndentDistance element, where the value of the prtFourBytesOfLengthFollowedByData.cb element
+          // MUST be: 4 + (4 × RgOutlineIndentDistance.count).
+          // * The TableColumnsLocked element, where the value of the prtFourBytesOfLengthFollowedByData.cb
+          // element MUST be: 1 + (TableColumnsLocked.cColumns + 7) / 8.
+          // * The TableColumnWidths element, where the value of the prtFourBytesOfLengthFollowedByData.cb
+          // element MUST be: 1 + (4 × TableColumnWidths.cColumns).
+
           val32 = deserializeLittleEndianInt();
           LOG.debug(" raw data: ({})[", val32);
         {
@@ -890,7 +900,7 @@ public class OneNotePtr {
         case 0x10:
           val32 = deserializeLittleEndianInt();
         {
-          OneNotePropertyEnum propId = deserializePropertyID();
+          OneNotePropertyId propId = deserializePropertyID();
           LOG.debug(" UnifiedSubPropertySet {} {}", val32, propId);
           data.propertySet.rgPridsData = Stream.generate(PropertyValue::new)
               .limit((int)val32)
@@ -918,9 +928,9 @@ public class OneNotePtr {
     }
   }
 
-  private OneNotePropertyEnum deserializePropertyID() throws IOException {
+  private OneNotePropertyId deserializePropertyID() throws IOException {
     long pid = deserializeLittleEndianInt();
-    return OneNotePropertyEnum.of(pid);
+    return new OneNotePropertyId(pid);
   }
 
   private ObjectSpaceObjectPropSet deserializeObjectSpaceObjectPropSet() throws IOException {

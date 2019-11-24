@@ -3,6 +3,7 @@ package org.apache.tika.onenote;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public enum OneNotePropertyEnum {
   LayoutTightLayout(0x08001C00),
   PageWidth(0x14001C01),
@@ -160,27 +161,34 @@ public enum OneNotePropertyEnum {
     for (OneNotePropertyEnum e: values()) {
       BY_ID.put(e.id, e);
     }
-    for (OneNotePropertyEnum e: values()) {
-      BY_ID.put(e.id & 0xffff, e);
-    }
   }
 
   public static OneNotePropertyEnum of(Long id) {
     OneNotePropertyEnum result = BY_ID.get(id);
     if (result == null) {
-      result = BY_ID.get(id & 0xffff);
+      return Unknown;
     }
-    return result == null ? Unknown : result;
+    return result;
   }
 
   public static long getType(OneNotePropertyEnum propertyEnum) {
-    if (propertyEnum == Unknown) {
-      return 0x1;
-    }
-    return propertyEnum.id >> 26 & 0x1f;
+    long pid = propertyEnum.id;
+    long id = (pid & 0x3ffffff);
+    return pid >> 26 & 0x1f;
   }
 
   public static boolean getInlineBool(OneNotePropertyEnum propertyEnum) {
-    return ((propertyEnum.id >> 31) & 0x1) > 0;
+    long pid = propertyEnum.id;
+    long id = (pid & 0x3ffffff);
+    long type = pid >> 26 & 0x1f;
+    boolean inlineBool = false;
+    if (type == 0x2) {
+      inlineBool = ((pid >> 31) & 0x1) > 0; // set the bool value from header
+    } else {
+      if (((pid >> 31) & 0x1) > 0) {
+        throw new RuntimeException("Reserved non-zero");
+      }
+    }
+    return inlineBool;
   }
 }
