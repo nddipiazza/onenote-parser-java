@@ -42,12 +42,16 @@ public class OneNoteTreeWalker implements AutoCloseable {
 
   public List<Map<String, Object>> walkTree() throws IOException {
     List<Map<String, Object>> res = new ArrayList<>();
-    for (ExtendedGUID revisionListGuid : oneNoteDocument.revisionListOrder) {
-      Map<String, Object> structure = new HashMap<>();
-      structure.put("revisionListGuid", revisionListGuid.toString());
-      FileNodePtr fileNodePtr = oneNoteDocument.revisionManifestLists.get(revisionListGuid);
-      structure.put("fileNode", walkRevision(fileNodePtr));
-      res.add(structure);
+//    for (ExtendedGUID revisionListGuid : oneNoteDocument.revisionListOrder) {
+//      Map<String, Object> structure = new HashMap<>();
+//      structure.put("oneNoteType", "Revision");
+//      structure.put("revisionListGuid", revisionListGuid.toString());
+//      FileNodePtr fileNodePtr = oneNoteDocument.revisionManifestLists.get(revisionListGuid);
+//      structure.put("fileNode", walkRevision(fileNodePtr));
+//      res.add(structure);
+//    }
+    for (FileNode fileNode : oneNoteDocument.root) {
+      res.add(walkFileNode(fileNode));
     }
     return res;
   }
@@ -59,6 +63,7 @@ public class OneNoteTreeWalker implements AutoCloseable {
 
   private Map<String, Object> walkRevision(FileNodePtr fileNodePtr) throws IOException {
     Map<String, Object> structure = new HashMap<>();
+    structure.put("oneNoteType", "FileNodePointer");
     structure.put("offsets", fileNodePtr.offsets);
     FileNode fileNode = fileNodePtr.dereference(oneNoteDocument);
     structure.put("fileNodeId", fileNode.id);
@@ -82,14 +87,14 @@ public class OneNoteTreeWalker implements AutoCloseable {
     List<Map<String, Object>> children = new ArrayList<>();
     boolean okGroup = false;
     for (FileNode child : fileNode.children) {
-      if (child.id == Constants.RevisionManifestStart4FND ||
-          child.id == Constants.RevisionManifestStart6FND ||
-          child.id == Constants.RevisionManifestStart7FND) {
+      if (child.id == FndStructureConstants.RevisionManifestStart4FND ||
+          child.id == FndStructureConstants.RevisionManifestStart6FND ||
+          child.id == FndStructureConstants.RevisionManifestStart7FND) {
         okGroup = validRevisions.contains(child.gosid);
       }
       if (okGroup) {
-        if ((child.id == Constants.RootObjectReference2FNDX ||
-            child.id == Constants.RootObjectReference3FND) &&
+        if ((child.id == FndStructureConstants.RootObjectReference2FNDX ||
+            child.id == FndStructureConstants.RootObjectReference3FND) &&
             child.subType.rootObjectReference.rootObjectReferenceBase.rootRole == 1) {
           FileNodePtr childFileNodePointer = oneNoteDocument.guidToObject.get(child.gosid);
           children.add(walkFileNodePtr(childFileNodePointer));
@@ -112,6 +117,13 @@ public class OneNoteTreeWalker implements AutoCloseable {
 
   public Map<String, Object> walkFileNode(FileNode fileNode) throws IOException {
     Map<String, Object> structure = new HashMap<>();
+    structure.put("oneNoteType", "FileNode");
+    structure.put("gosid", fileNode.gosid.toString());
+    structure.put("size", fileNode.size);
+    structure.put("fileNodeId", "0x" + Long.toHexString(fileNode.id));
+    structure.put("fileNodeIdName", FndStructureConstants.nameOf(fileNode.id));
+    structure.put("fileNodeBaseType", "0x" + Long.toHexString(fileNode.baseType));
+    structure.put("isFileData", fileNode.isFileData);
     List<Map<String, Object>> children = new ArrayList<>();
     for (FileNode child : fileNode.children) {
       children.add(walkFileNode(child));
@@ -119,9 +131,11 @@ public class OneNoteTreeWalker implements AutoCloseable {
     if (!children.isEmpty()) {
       structure.put("children", children);
     }
-    List<Map<String, Object>> propSet = processPropertySet(fileNode.propertySet);
-    if (!propSet.isEmpty()) {
-      structure.put("propertySet", propSet);
+    if (fileNode.propertySet != null) {
+      List<Map<String, Object>> propSet = processPropertySet(fileNode.propertySet);
+      if (!propSet.isEmpty()) {
+        structure.put("propertySet", propSet);
+      }
     }
     return structure;
   }
@@ -136,6 +150,7 @@ public class OneNoteTreeWalker implements AutoCloseable {
 
   private Map<String, Object> processPropertyValue(PropertyValue propertyValue) throws IOException {
     Map<String, Object> propMap = new HashMap<>();
+    propMap.put("oneNoteType", "PropertyValue");
     propMap.put("propertyId", propertyValue.propertyId.toString());
     if (propertyValue.propertyId.type > 0 && propertyValue.propertyId.type <= 6) {
       propMap.put("scalar", propertyValue.scalar);
@@ -162,9 +177,8 @@ public class OneNoteTreeWalker implements AutoCloseable {
         propMap.put("dataB64", Base64.encodeBase64String(buf));
         propMap.put("dataUnicode16LE", new String(buf, StandardCharsets.UTF_16LE));
       }
-    } else if (propertyValue.propertyId.type == 0x9 || propertyValue.propertyId.type == 0x8
-        || propertyValue.propertyId.type == 0xb || propertyValue.propertyId.type == 0xc
-        || propertyValue.propertyId.type == 0xa || propertyValue.propertyId.type == 0xd) {
+    }
+    if (propertyValue.compactIDs != null) {
       List<Map<String, Object>> children = new ArrayList<>();
       for (CompactID compactID : propertyValue.compactIDs) {
         FileNodePtr childFileNodePointer = oneNoteDocument.guidToObject.get(compactID.guid);
@@ -173,7 +187,8 @@ public class OneNoteTreeWalker implements AutoCloseable {
       if (!children.isEmpty()) {
         propMap.put("children", children);
       }
-    } else if (propertyValue.propertyId.type == 0x10 || propertyValue.propertyId.type == 0x11) {
+    }
+    if (propertyValue.propertySet != null && propertyValue.propertySet.rgPridsData != null) {
       List<Map<String, Object>> propSet = processPropertySet(propertyValue.propertySet);
       if (!propSet.isEmpty()) {
         propMap.put("propertySet", propSet);

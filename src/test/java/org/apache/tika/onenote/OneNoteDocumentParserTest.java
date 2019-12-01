@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -63,8 +64,7 @@ public class OneNoteDocumentParserTest {
 
       baos.close();
 
-      LOG.info("Json output:");
-      LOG.info(new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL).writerWithDefaultPrettyPrinter().writeValueAsString(outputMap));
+      FileUtils.writeStringToFile(new File("test.json"), new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL).writerWithDefaultPrettyPrinter().writeValueAsString(outputMap), StandardCharsets.UTF_8);
 
       // TODO asserts
     }
@@ -87,8 +87,7 @@ public class OneNoteDocumentParserTest {
 
       baos.close();
 
-      LOG.info("Json output:");
-      LOG.info(new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL).writerWithDefaultPrettyPrinter().writeValueAsString(outputMap));
+      FileUtils.writeStringToFile(new File("test.json"), new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL).writerWithDefaultPrettyPrinter().writeValueAsString(outputMap), StandardCharsets.UTF_8);
 
       // TODO asserts
     }

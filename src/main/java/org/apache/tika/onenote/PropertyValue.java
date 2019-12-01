@@ -26,7 +26,7 @@ public class PropertyValue {
     long type = propertyId.type;
 
     if (isRawText) {
-      LOG.debug("{}<{}", Constants.getIndent(indentLevel + 1), propertyId);
+      LOG.debug("{}<{}", IndentUtil.getIndent(indentLevel + 1), propertyId);
     }
     if (type > 0 && type <= 6) {
       if (isRawText) {
@@ -55,7 +55,7 @@ public class PropertyValue {
           LOG.debug("");
         }
         for (CompactID compactID : compactIDs) {
-          LOG.debug("{}{}[{}]", Constants.getIndent(indentLevel + 1), xtype, compactID);
+          LOG.debug("{}{}[{}]", IndentUtil.getIndent(indentLevel + 1), xtype, compactID);
           FileNodePtr where = document.guidToObject.get(compactID.guid);
           if (where != null) {
             where.dereference(document).print(document, pointer,indentLevel + 1);

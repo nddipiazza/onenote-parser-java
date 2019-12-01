@@ -25,11 +25,7 @@ public class OneNoteDocument {
   }
 
   FileChunkReference getAssocGuidToRef(ExtendedGUID guid) {
-    FileChunkReference where = guidToRef.get(guid);
-    if (where == null) {
-      throw new RuntimeException("Failed to find guid " + guid);
-    }
-    return where;
+    return guidToRef.get(guid);
   }
 
   void setAssocGuidToRef(ExtendedGUID guid, FileChunkReference ref) {

@@ -1,14 +1,15 @@
 package org.apache.tika.onenote;
 
+import com.google.common.collect.Lists;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
 public class PropertySet {
-  List<PropertyValue> rgPridsData;
+  List<PropertyValue> rgPridsData = Lists.newArrayList();
 
   public void print(OneNoteDocument document, OneNotePtr pointer, int indentLevel) throws IOException {
-
     for (PropertyValue child : rgPridsData) {
       child.print(document, pointer, indentLevel);
     }

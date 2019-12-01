@@ -1,9 +1,22 @@
 package org.apache.tika.onenote;
 
+import org.apache.commons.lang.StringUtils;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class GUID implements Comparable<GUID> {
   int[] guid;
+
+  public static GUID fromCurlyBraceUTF16Bytes(byte[] guid) {
+    int [] intGuid = new int[16];
+    String utf16Str = new String(guid, StandardCharsets.UTF_16LE).replaceAll("\\{", "")
+        .replaceAll("-", "").replaceAll("}", "");
+    for (int i = 0; i < utf16Str.length(); i += 2) {
+      intGuid[i / 2] = Integer.parseUnsignedInt("" + utf16Str.charAt(i) + utf16Str.charAt(i + 1), 16);
+    }
+    return new GUID(intGuid);
+  }
 
   @Override
   public int compareTo(GUID o) {
@@ -47,7 +60,29 @@ public class GUID implements Comparable<GUID> {
 
   @Override
   public String toString() {
-    return Arrays.toString(guid);
+    StringBuilder sb = new StringBuilder();
+    sb.append("{");
+    for (int i = 0; i < 4; ++i) {
+      sb.append(StringUtils.leftPad(Integer.toHexString(guid[i]), 2, '0'));
+    }
+    sb.append("-");
+    for (int i = 4; i < 6; ++i) {
+      sb.append(StringUtils.leftPad(Integer.toHexString(guid[i]), 2, '0'));
+    }
+    sb.append("-");
+    for (int i = 6; i < 8; ++i) {
+      sb.append(StringUtils.leftPad(Integer.toHexString(guid[i]), 2, '0'));
+    }
+    sb.append("-");
+    for (int i = 8; i < 10; ++i) {
+      sb.append(StringUtils.leftPad(Integer.toHexString(guid[i]), 2, '0'));
+    }
+    sb.append("-");
+    for (int i = 10; i < 16; ++i) {
+      sb.append(StringUtils.leftPad(Integer.toHexString(guid[i]), 2, '0'));
+    }
+    sb.append("}");
+    return sb.toString().toUpperCase();
   }
 
   public static GUID nil() {

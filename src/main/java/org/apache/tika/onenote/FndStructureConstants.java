@@ -1,7 +1,7 @@
 package org.apache.tika.onenote;
 
-public final class Constants {
-  private Constants() {
+public final class FndStructureConstants {
+  private FndStructureConstants() {
     // no op
   }
 
@@ -138,13 +138,5 @@ public final class Constants {
       default:
         return "UnknownFND";
     }
-  }
-
-  public static String getIndent(int indentLevel) {
-    String retval = "";
-    for (int i = 0; i < indentLevel; ++i) {
-      retval += "  ";
-    }
-    return retval;
   }
 }

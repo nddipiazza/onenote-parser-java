@@ -9,12 +9,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.apache.tika.onenote.Constants.CanRevise.ObjectDeclarationWithRefCount2FNDX;
+import static org.apache.tika.onenote.FndStructureConstants.CanRevise.ObjectDeclarationWithRefCount2FNDX;
 
 public class OneNotePtr {
 
@@ -22,6 +24,10 @@ public class OneNotePtr {
 
   public static final long FOOTER_CONST = 0x8BC215C38233BA4BL;
   public static final String UNKNOWN = "unknown";
+  private static final byte [] IFNDF = new byte[] {
+      60, 0, 105, 0, 102, 0, 110, 0, 100, 0, 102, 0, 62, 0
+  };
+  public static final int IFNDF_GUID_LENGTH = 38; // 36 char guid with a { and a } char.
   int indentLevel = 0;
 
   long offset;
@@ -214,7 +220,7 @@ public class OneNotePtr {
       CheckedFileNodePushBack pushBack = new CheckedFileNodePushBack(data);
       try {
         FileNode fileNode = deserializeFileNode(data.get(data.size()-1), curPath);
-        if (fileNode.id == Constants.ChunkTerminatorFND || fileNode.id == 0) {
+        if (fileNode.id == FndStructureConstants.ChunkTerminatorFND || fileNode.id == 0) {
           terminated = true;
           break;
         }
@@ -254,7 +260,7 @@ public class OneNotePtr {
     if (data.id == 0) {
       return data;
     }
-    LOG.debug("{}Start Node {} ({}) - Offset={}, End={}", getIndent(), Constants.nameOf(data.id), data.id, offset, end);
+    LOG.debug("{}Start Node {} ({}) - Offset={}, End={}", getIndent(), FndStructureConstants.nameOf(data.id), data.id, offset, end);
 
     ++indentLevel;
 
@@ -275,27 +281,27 @@ public class OneNotePtr {
       content.reposition(data.ref);
       // would have thrown an error if invalid.
     }
-    if (data.id == Constants.ObjectGroupStartFND) {
+    if (data.id == FndStructureConstants.ObjectGroupStartFND) {
       idDesc = "oid(group)";
       data.gosid = deserializeExtendedGUID();
       //LOG.debug("{}gosid {}", getIndent(), data.gosid.toString().c_str());
-    } else if (data.id == Constants.ObjectGroupEndFND) {
+    } else if (data.id == FndStructureConstants.ObjectGroupEndFND) {
       // no data
-    } else if (data.id == Constants.ObjectSpaceManifestRootFND
-        || data.id == Constants.ObjectSpaceManifestListStartFND) {
-      if (data.id == Constants.ObjectSpaceManifestRootFND) {
+    } else if (data.id == FndStructureConstants.ObjectSpaceManifestRootFND
+        || data.id == FndStructureConstants.ObjectSpaceManifestListStartFND) {
+      if (data.id == FndStructureConstants.ObjectSpaceManifestRootFND) {
         idDesc = "gosidRoot";
       } else {
         idDesc = "gosid";
       }
       data.gosid = deserializeExtendedGUID();
       //LOG.debug("{}gosid {}", getIndent(), data.gosid.toString().c_str());
-    } else if (data.id == Constants.ObjectSpaceManifestListReferenceFND) {
+    } else if (data.id == FndStructureConstants.ObjectSpaceManifestListReferenceFND) {
       data.gosid = deserializeExtendedGUID();
       idDesc = "gosid";
       //LOG.debug("{}gosid {}", getIndent(),data.gosid.toString().c_str());
       //children parsed in generic base_type 2 parser
-    } else if (data.id == Constants.RevisionManifestListStartFND) {
+    } else if (data.id == FndStructureConstants.RevisionManifestListStartFND) {
       data.gosid = deserializeExtendedGUID();
       idDesc = "gosid";
       FileNodePtr parentPath = new FileNodePtr(curPath);
@@ -305,7 +311,7 @@ public class OneNotePtr {
 
       //LOG.debug("{}gosid {}", getIndent(),data.gosid.toString().c_str());
       data.subType.revisionManifestListStart.nInstanceIgnored = deserializeLittleEndianInt();
-    } else if (data.id == Constants.RevisionManifestStart4FND) {
+    } else if (data.id == FndStructureConstants.RevisionManifestStart4FND) {
       data.gosid = deserializeExtendedGUID(); // the rid
       idDesc = "rid";
       //LOG.debug("{}gosid {}", getIndent(), data.gosid.toString().c_str());
@@ -317,8 +323,8 @@ public class OneNotePtr {
 
       data.gctxid = ExtendedGUID.nil();
       document.registerRevisionManifest(data);
-    } else if (data.id == Constants.RevisionManifestStart6FND
-        || data.id == Constants.RevisionManifestStart7FND) {
+    } else if (data.id == FndStructureConstants.RevisionManifestStart6FND
+        || data.id == FndStructureConstants.RevisionManifestStart7FND) {
       data.gosid = deserializeExtendedGUID(); // the rid
       idDesc = "rid";
       //LOG.debug("{}gosid {}", getIndent(), data.gosid.toString().c_str());
@@ -328,21 +334,21 @@ public class OneNotePtr {
       data.subType.revisionManifest.odcsDefault = deserializeLittleEndianShort();
 
       data.gctxid = ExtendedGUID.nil();
-      if (data.id == Constants.RevisionManifestStart7FND) {
+      if (data.id == FndStructureConstants.RevisionManifestStart7FND) {
         data.gctxid = deserializeExtendedGUID(); // the rid
       }
       document.registerAdditionalRevisionRole(data.gosid, data.subType.revisionManifest.revisionRole, data.gctxid);
       document.registerRevisionManifest(data);
-    } else if (data.id == Constants.GlobalIdTableStartFNDX) {
+    } else if (data.id == FndStructureConstants.GlobalIdTableStartFNDX) {
       data.subType.globalIdTableStartFNDX.reserved = deserializeLittleEndianChar();
 
-    } else if (data.id == Constants.GlobalIdTableEntryFNDX) {
+    } else if (data.id == FndStructureConstants.GlobalIdTableEntryFNDX) {
       data.subType.globalIdTableEntryFNDX.index = deserializeLittleEndianInt();
 
       data.subType.globalIdTableEntryFNDX.guid = deserializeGUID();
 
       document.revisionMap.get(document.currentRevision).globalId.put(data.subType.globalIdTableEntryFNDX.index, data.subType.globalIdTableEntryFNDX.guid);
-    } else if (data.id == Constants.GlobalIdTableEntry2FNDX) {
+    } else if (data.id == FndStructureConstants.GlobalIdTableEntry2FNDX) {
       data.subType.globalIdTableEntry2FNDX.indexMapFrom = deserializeLittleEndianInt();
       data.subType.globalIdTableEntry2FNDX.indexMapTo = deserializeLittleEndianInt();
 
@@ -354,7 +360,7 @@ public class OneNotePtr {
         throw new RuntimeException("COMPACT_ID_MISSING");
       }
       document.revisionMap.get(document.currentRevision).globalId.put(data.subType.globalIdTableEntry2FNDX.indexMapTo, compactId);
-    } else if (data.id == Constants.GlobalIdTableEntry3FNDX) {
+    } else if (data.id == FndStructureConstants.GlobalIdTableEntry3FNDX) {
       data.subType.globalIdTableEntry3FNDX.indexCopyFromStart = deserializeLittleEndianInt();
 
       data.subType.globalIdTableEntry3FNDX.entriesToCopy = deserializeLittleEndianInt();
@@ -370,11 +376,11 @@ public class OneNotePtr {
         }
         document.revisionMap.get(document.currentRevision).globalId.put(data.subType.globalIdTableEntry3FNDX.indexCopyToStart + i, compactId);
       }
-    } else if (data.id == Constants.CanRevise.ObjectRevisionWithRefCountFNDX
-        || data.id == Constants.CanRevise.ObjectRevisionWithRefCount2FNDX) {
+    } else if (data.id == FndStructureConstants.CanRevise.ObjectRevisionWithRefCountFNDX
+        || data.id == FndStructureConstants.CanRevise.ObjectRevisionWithRefCount2FNDX) {
       data.subType.objectRevisionWithRefCountFNDX.oid = deserializeCompactID(); // the oid
 
-      if (data.id == Constants.CanRevise.ObjectRevisionWithRefCountFNDX) {
+      if (data.id == FndStructureConstants.CanRevise.ObjectRevisionWithRefCountFNDX) {
         int ref = deserializeLittleEndianChar();
 
         data.subType.objectRevisionWithRefCountFNDX.hasOidReferences = ref & 1;
@@ -390,7 +396,7 @@ public class OneNotePtr {
         }
         data.subType.objectRevisionWithRefCountFNDX.cRef = deserializeLittleEndianInt();
       }
-    } else if (data.id == Constants.RootObjectReference2FNDX) {
+    } else if (data.id == FndStructureConstants.RootObjectReference2FNDX) {
       data.subType.rootObjectReference.oidRoot = deserializeCompactID();
 
       idDesc = "oidRoot";
@@ -399,7 +405,7 @@ public class OneNotePtr {
 
       LOG.debug("{}Root role {}", getIndent(),
           data.subType.rootObjectReference.rootObjectReferenceBase.rootRole);
-    } else if (data.id == Constants.RootObjectReference3FND) {
+    } else if (data.id == FndStructureConstants.RootObjectReference3FND) {
       idDesc = "oidRoot";
       data.gosid = deserializeExtendedGUID();
 
@@ -407,13 +413,13 @@ public class OneNotePtr {
 
       LOG.debug("{}Root role {}", getIndent(),
           data.subType.rootObjectReference.rootObjectReferenceBase.rootRole);
-    } else if (data.id == Constants.RevisionRoleDeclarationFND
-        || data.id == Constants.RevisionRoleAndContextDeclarationFND) {
+    } else if (data.id == FndStructureConstants.RevisionRoleDeclarationFND
+        || data.id == FndStructureConstants.RevisionRoleAndContextDeclarationFND) {
       data.gosid = deserializeExtendedGUID();
 
       data.subType.revisionRoleDeclaration.revisionRole = deserializeLittleEndianInt();
 
-      if (data.id == Constants.RevisionRoleAndContextDeclarationFND) {
+      if (data.id == FndStructureConstants.RevisionRoleAndContextDeclarationFND) {
         data.gctxid = deserializeExtendedGUID();
 
       }
@@ -421,45 +427,45 @@ public class OneNotePtr {
           data.subType.revisionRoleDeclaration.revisionRole,
           data.gctxid);
       // FIXME: deal with ObjectDataEncryptionKey
-    } else if (data.id == Constants.ObjectInfoDependencyOverridesFND) {
+    } else if (data.id == FndStructureConstants.ObjectInfoDependencyOverridesFND) {
       OneNotePtr content = new OneNotePtr(this);
       if (!data.ref.equals(FileChunkReference.nil())) {
         content.reposition(data.ref); // otherwise it's positioned right at this node
       }
       data.subType.objectInfoDependencyOverrides.data = content.deserializeObjectInfoDependencyOverrideData();
-    } else if (data.id == Constants.FileDataStoreListReferenceFND) {
+    } else if (data.id == FndStructureConstants.FileDataStoreListReferenceFND) {
       // already processed this
-    } else if (data.id == Constants.FileDataStoreObjectReferenceFND) {
+    } else if (data.id == FndStructureConstants.FileDataStoreObjectReferenceFND) {
       OneNotePtr fileDataStorePtr = new OneNotePtr(this);
       fileDataStorePtr.reposition(data.ref);
 
       data.subType.fileDataStoreObjectReference.ref = fileDataStorePtr.deserializeFileDataStoreObject();
 
-    } else if (data.id == Constants.CanRevise.ObjectDeclarationWithRefCountFNDX
+    } else if (data.id == FndStructureConstants.CanRevise.ObjectDeclarationWithRefCountFNDX
         || data.id == ObjectDeclarationWithRefCount2FNDX
-        || data.id == Constants.CanRevise.ObjectDeclaration2RefCountFND
-        || data.id == Constants.CanRevise.ObjectDeclaration2LargeRefCountFND
-        || data.id == Constants.CanRevise.ReadOnlyObjectDeclaration2RefCountFND
-        || data.id == Constants.CanRevise.ReadOnlyObjectDeclaration2LargeRefCountFND) {
+        || data.id == FndStructureConstants.CanRevise.ObjectDeclaration2RefCountFND
+        || data.id == FndStructureConstants.CanRevise.ObjectDeclaration2LargeRefCountFND
+        || data.id == FndStructureConstants.CanRevise.ReadOnlyObjectDeclaration2RefCountFND
+        || data.id == FndStructureConstants.CanRevise.ReadOnlyObjectDeclaration2LargeRefCountFND) {
       data.subType.objectDeclarationWithRefCount.body.file_data_store_reference =
           false;
-      if (data.id == Constants.CanRevise.ObjectDeclarationWithRefCountFNDX
+      if (data.id == FndStructureConstants.CanRevise.ObjectDeclarationWithRefCountFNDX
           || data.id == ObjectDeclarationWithRefCount2FNDX) {
         data.subType.objectDeclarationWithRefCount.body = deserializeObjectDeclarationWithRefCountBody();
       } else { // one of the other 4 that use the ObjectDeclaration2Body
         data.subType.objectDeclarationWithRefCount.body = deserializeObjectDeclaration2Body();
       }
-      if (data.id == Constants.CanRevise.ObjectDeclarationWithRefCountFNDX
-          || data.id == Constants.CanRevise.ObjectDeclaration2RefCountFND
-          || data.id == Constants.CanRevise.ReadOnlyObjectDeclaration2RefCountFND) {
+      if (data.id == FndStructureConstants.CanRevise.ObjectDeclarationWithRefCountFNDX
+          || data.id == FndStructureConstants.CanRevise.ObjectDeclaration2RefCountFND
+          || data.id == FndStructureConstants.CanRevise.ReadOnlyObjectDeclaration2RefCountFND) {
         long refCnt = deserializeLittleEndianChar();
         data.subType.objectDeclarationWithRefCount.cRef = refCnt;
       } else {
         data.subType.objectDeclarationWithRefCount.cRef = deserializeLittleEndianInt();
       }
 
-      if (data.id == Constants.CanRevise.ReadOnlyObjectDeclaration2RefCountFND
-          || data.id == Constants.CanRevise.ReadOnlyObjectDeclaration2LargeRefCountFND) {
+      if (data.id == FndStructureConstants.CanRevise.ReadOnlyObjectDeclaration2RefCountFND
+          || data.id == FndStructureConstants.CanRevise.ReadOnlyObjectDeclaration2LargeRefCountFND) {
         data.subType.objectDeclarationWithRefCount.readOnly.md5 = new byte[16];
         IOUtils.read(in, data.subType.objectDeclarationWithRefCount.readOnly.md5);
       }
@@ -468,15 +474,15 @@ public class OneNotePtr {
 
       LOG.debug("{}Ref Count JCID {}", getIndent(),
           data.subType.objectDeclarationWithRefCount.body.jcid);
-    } else if (data.id == Constants.CanRevise.ObjectDeclarationFileData3RefCountFND
-        || data.id == Constants.CanRevise.ObjectDeclarationFileData3LargeRefCountFND) {
+    } else if (data.id == FndStructureConstants.CanRevise.ObjectDeclarationFileData3RefCountFND
+        || data.id == FndStructureConstants.CanRevise.ObjectDeclarationFileData3LargeRefCountFND) {
       data.subType.objectDeclarationWithRefCount.body.oid = deserializeCompactID();
 
       long jcid = deserializeLittleEndianInt();
 
       data.subType.objectDeclarationWithRefCount.body.jcid.loadFrom32BitIndex(jcid);
 
-      if (data.id == Constants.CanRevise.ObjectDeclarationFileData3RefCountFND) {
+      if (data.id == FndStructureConstants.CanRevise.ObjectDeclarationFileData3RefCountFND) {
         data.subType.objectDeclarationWithRefCount.cRef = deserializeLittleEndianChar();
       } else {
         data.subType.objectDeclarationWithRefCount.cRef = deserializeLittleEndianInt();
@@ -488,39 +494,38 @@ public class OneNotePtr {
         throw new RuntimeException("SEGV");
       }
 
-      // there is some dead code that looks like it has some purpose but
-      // i'm not able to determine what. ignoring for now.
-//        List<Long> u16data = Stream.generate(PropertyValue::new)
-//              .limit((int)ch)
-//              .collect(Collectors.toList())
-//        int guidPrefix[] = { '<', 'i', 'f', 'n', 'd', 'f', '>' };
-//        long prefix_len = guidPrefix.length / 4;
-//        if (cch > prefix_len) {
-//          // see https://github.com/dropbox/onenote-parser/blob/master/one_note_ptr.cpp#L1011
-//        } else {
-//          // external reference
-//          String fmt = "";
-//          for (int i = 0; i < u16data.size(); ++i) {
-//            fmt += u16data.get(i);
-//          }
-//          System.err.format("Do not support external references %s", fmt);
-//        }
-    } else if (data.id == Constants.ObjectGroupListReferenceFND) {
+      byte [] themChars = new byte[(int)cch * 2];
+      IOUtils.readFully(in, themChars);
+      offset += themChars.length;
+      if (themChars.length == (IFNDF_GUID_LENGTH * 2 + IFNDF.length) && Arrays.equals(IFNDF, Arrays.copyOfRange(themChars, 0, IFNDF.length))) {
+        data.subType.objectDeclarationWithRefCount.body.file_data_store_reference = true;
+        GUID guid = GUID.fromCurlyBraceUTF16Bytes(Arrays.copyOfRange(themChars, IFNDF.length, themChars.length));
+        ExtendedGUID extendedGUID = new ExtendedGUID(guid, 0);
+        FileChunkReference fileChunk = document.getAssocGuidToRef(extendedGUID);
+        if (fileChunk == null) {
+          LOG.error("{} have not seen GUID {} yet", getIndent(), extendedGUID);
+        } else {
+          // TODO - call postprocessObjectDeclarationContents on this object.
+        }
+      } else {
+        LOG.debug("{}Ignoring an external reference {}", getIndent(), new String(themChars, StandardCharsets.UTF_16LE));
+      }
+    } else if (data.id == FndStructureConstants.ObjectGroupListReferenceFND) {
       idDesc = "object_group_id";
       data.gosid = deserializeExtendedGUID(); // the object group id
 
       // the ref populates the FileNodeList children
-    } else if (data.id == Constants.ObjectGroupStartFND) {
+    } else if (data.id == FndStructureConstants.ObjectGroupStartFND) {
       idDesc = "object_group_id";
       data.gosid = deserializeExtendedGUID(); // the oid
 
-    } else if (data.id == Constants.ObjectGroupEndFND) {
+    } else if (data.id == FndStructureConstants.ObjectGroupEndFND) {
       // nothing to see here
-    } else if (data.id == Constants.DataSignatureGroupDefinitionFND) {
+    } else if (data.id == FndStructureConstants.DataSignatureGroupDefinitionFND) {
       idDesc = "data_sig";
       data.gosid = deserializeExtendedGUID(); // the DataSignatureGroup
 
-    } else if (data.id == Constants.RevisionManifestListReferenceFND) {
+    } else if (data.id == FndStructureConstants.RevisionManifestListReferenceFND) {
       document.revisionMap.putIfAbsent(document.currentRevision, new Revision());
       Revision currentRevision = document.revisionMap.get(document.currentRevision);
       currentRevision.manifestList.add(curPath);
@@ -549,9 +554,9 @@ public class OneNotePtr {
     }
     --indentLevel;
     if (data.gosid.equals(ExtendedGUID.nil())) {
-      LOG.debug("{}End Node {} ({}) - Offset={}, End={}", getIndent(), Constants.nameOf(data.id), (int) data.id, offset, end);
+      LOG.debug("{}End Node {} ({}) - Offset={}, End={}", getIndent(), FndStructureConstants.nameOf(data.id), (int) data.id, offset, end);
     } else {
-      LOG.debug("{}End Node {} ({}) {}:[{}] - Offset={}, End={}", getIndent(), Constants.nameOf(data.id), (int) data.id, idDesc,
+      LOG.debug("{}End Node {} ({}) {}:[{}] - Offset={}, End={}", getIndent(), FndStructureConstants.nameOf(data.id), (int) data.id, idDesc,
           data.gosid, offset, end);
     }
     return data;

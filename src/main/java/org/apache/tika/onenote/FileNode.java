@@ -63,8 +63,8 @@ public class FileNode {
   }
 
   public boolean hasGctxid() {
-    return id == Constants.RevisionRoleAndContextDeclarationFND
-        || id == Constants.RevisionManifestStart7FND;
+    return id == FndStructureConstants.RevisionRoleAndContextDeclarationFND
+        || id == FndStructureConstants.RevisionManifestStart7FND;
   }
 
   public long getId() {
@@ -167,37 +167,37 @@ public class FileNode {
   }
 
   public void print(OneNoteDocument document, OneNotePtr pointer, int indentLevel) throws IOException {
-    boolean shouldPrintHeader = Constants.nameOf(id).contains("ObjectDec");
+    boolean shouldPrintHeader = FndStructureConstants.nameOf(id).contains("ObjectDec");
     if (gosid.equals(ExtendedGUID.nil()) && shouldPrintHeader) {
-      LOG.debug("{}[beg {}]:{}", Constants.getIndent(indentLevel + 1), Constants.nameOf(id), gosid);
+      LOG.debug("{}[beg {}]:{}", IndentUtil.getIndent(indentLevel + 1), FndStructureConstants.nameOf(id), gosid);
     }
     propertySet.print(document, pointer, indentLevel + 1);
     if (!children.isEmpty()) {
       if (shouldPrintHeader) {
-        LOG.debug("{}children", Constants.getIndent(indentLevel + 1));
+        LOG.debug("{}children", IndentUtil.getIndent(indentLevel + 1));
       }
       for (FileNode child : children) {
         child.print(document, pointer,indentLevel + 1);
       }
     }
-    if (id == Constants.RevisionRoleDeclarationFND
-        || id == Constants.RevisionRoleAndContextDeclarationFND) {
-      LOG.debug("{}[Revision Role {}]", Constants.getIndent(indentLevel + 1),
+    if (id == FndStructureConstants.RevisionRoleDeclarationFND
+        || id == FndStructureConstants.RevisionRoleAndContextDeclarationFND) {
+      LOG.debug("{}[Revision Role {}]", IndentUtil.getIndent(indentLevel + 1),
           subType.revisionRoleDeclaration.revisionRole);
 
     }
-    if (id == Constants.RevisionManifestStart4FND || id == Constants.RevisionManifestStart6FND
-        || id == Constants.RevisionManifestStart7FND) {
-      LOG.debug("{}[revisionRole {}]", Constants.getIndent(indentLevel + 1),
+    if (id == FndStructureConstants.RevisionManifestStart4FND || id == FndStructureConstants.RevisionManifestStart6FND
+        || id == FndStructureConstants.RevisionManifestStart7FND) {
+      LOG.debug("{}[revisionRole {}]", IndentUtil.getIndent(indentLevel + 1),
           subType.revisionManifest.revisionRole);
 
     }
-    if ((gctxid != ExtendedGUID.nil() || id == Constants.RevisionManifestStart7FND)
+    if ((gctxid != ExtendedGUID.nil() || id == FndStructureConstants.RevisionManifestStart7FND)
 			&& shouldPrintHeader) {
-      LOG.debug("{}[gctxid {}]", Constants.getIndent(indentLevel + 1), gctxid);
+      LOG.debug("{}[gctxid {}]", IndentUtil.getIndent(indentLevel + 1), gctxid);
     }
     if (gosid != ExtendedGUID.nil() && shouldPrintHeader) {
-      LOG.debug("{}[end {}]:{}", Constants.getIndent(indentLevel + 1), Constants.nameOf(id),
+      LOG.debug("{}[end {}]:{}", IndentUtil.getIndent(indentLevel + 1), FndStructureConstants.nameOf(id),
           gosid);
 
     }
