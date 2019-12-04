@@ -1,5 +1,9 @@
 package org.apache.tika.onenote;
 
+/**
+ * Provides a way to add a new element on the fileNode list, but remove it from the list if
+ * we end up not committing it.
+ */
 public class CheckedFileNodePushBack {
   FileNodeList fileNodeList;
   boolean committed;
