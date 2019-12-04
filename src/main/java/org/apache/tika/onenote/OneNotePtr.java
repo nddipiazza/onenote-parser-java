@@ -255,8 +255,8 @@ public class OneNotePtr {
         FileNode dereference = curPath.dereference(document);
         FileNode lastChild = data.children.get(data.children.size() - 1);
         assert dereference.equals(lastChild); // is this correct? or should we be checking the pointer?
-        Integer curPathOffset = curPath.offsets.get(curPath.offsets.size() - 1);
-        curPath.offsets.set(curPath.offsets.size() - 1, curPathOffset + 1);
+        Integer curPathOffset = curPath.nodeListPositions.get(curPath.nodeListPositions.size() - 1);
+        curPath.nodeListPositions.set(curPath.nodeListPositions.size() - 1, curPathOffset + 1);
       } finally {
         pushBack.popBackIfNotCommitted();
       }
@@ -335,7 +335,7 @@ public class OneNotePtr {
       data.gosid = deserializeExtendedGUID();
       idDesc = "gosid";
       FileNodePtr parentPath = new FileNodePtr(curPath);
-      parentPath.offsets.remove(parentPath.offsets.size() - 1);
+      parentPath.nodeListPositions.remove(parentPath.nodeListPositions.size() - 1);
       FileNodePtrBackPush.numDescs++;
       document.registerRevisionManifestList(data.gosid, parentPath);
 

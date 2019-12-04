@@ -65,7 +65,7 @@ public class OneNoteTreeWalker implements AutoCloseable {
   private Map<String, Object> walkRevision(FileNodePtr fileNodePtr) throws IOException {
     Map<String, Object> structure = new HashMap<>();
     structure.put("oneNoteType", "FileNodePointer");
-    structure.put("offsets", fileNodePtr.offsets);
+    structure.put("offsets", fileNodePtr.nodeListPositions);
     FileNode revisionFileNode = fileNodePtr.dereference(oneNoteDocument);
     structure.put("fileNodeId", revisionFileNode.id);
     if (revisionFileNode.gosid != null) {

@@ -7,12 +7,12 @@ public class FileNodePtrBackPush {
 
   public FileNodePtrBackPush(FileNodePtr parent) {
     this.parent = parent;
-    this.parent.offsets.add(0);
+    this.parent.nodeListPositions.add(0);
     ++numAdds;
   }
 
   public void dec() {
-    parent.offsets.remove(parent.offsets.size()-1);
+    parent.nodeListPositions.remove(parent.nodeListPositions.size()-1);
     numDescs++;
   }
 }
