@@ -18,6 +18,14 @@ import java.util.stream.Stream;
 
 import static org.apache.tika.onenote.FndStructureConstants.CanRevise.ObjectDeclarationWithRefCount2FNDX;
 
+/**
+ * This is the main class used during parsing. This will contain an offset position and end position for reading bytes
+ * from the byte stream.
+ *
+ * It contains all the deserialize methods used to read the different data elements from a one note file.
+ *
+ * You can construct a new one note pointer and it will reposition the byte channel and will read until
+ */
 public class OneNotePtr {
 
   private static final Logger LOG = LoggerFactory.getLogger(OneNoteParser.class);
@@ -187,7 +195,14 @@ public class OneNotePtr {
     channel.position(offset);
   }
 
-  public OneNotePtr internalDeserializeFileNodeList(OneNotePtr ptr, List<FileNode> fileNodeList, FileNodePtr curPath) throws IOException {
+  /**
+   * Keep parsing file node list fragments until a nil file chunk reference is encountered.
+   * @param ptr The current OneNotePtr we are at currently.
+   * @param fileNodeList The file node list to populate as we parse.
+   * @param curPath The current FileNodePtr.
+   * @return The resulting one note pointer after node lists are all parsed.
+   */
+  public OneNotePtr internalDeserializeFileNodeList(OneNotePtr ptr, FileNodeList fileNodeList, FileNodePtr curPath) throws IOException {
     OneNotePtr localPtr = new OneNotePtr(document, in, channel);
     FileNodePtrBackPush bp = new FileNodePtrBackPush(curPath);
     try {
@@ -207,26 +222,38 @@ public class OneNotePtr {
   }
 
 
-  public OneNotePtr deserializeFileNodeList(List<FileNode> fileNodeList, FileNodePtr curPath) throws IOException {
+  public OneNotePtr deserializeFileNodeList(FileNodeList fileNodeList, FileNodePtr curPath) throws IOException {
     return internalDeserializeFileNodeList(this, fileNodeList, curPath);
   }
 
-  void deserializeFileNodeListFragment(List<FileNode> data, FileChunkReference next, FileNodePtr curPath) throws IOException {
-    FileNodeListHeader fileNodeListHeader = deserializeFileNodeListHeader();
+  /**
+   * Deserializes a FileNodeListFragment.
+   *
+   * The FileNodeListFragment structure specifies a sequence of file nodes from a file node list. The size of the
+   * FileNodeListFragment structure is specified by the structure that references it.
+   *
+   * All fragments in the same file node list MUST have the same FileNodeListFragment.header.FileNodeListID field.
+   *
+   * @param data List of file nodes that we collect while deserializing.
+   * @param next The next file chunk we are referencing.
+   * @param curPath The current FileNodePtr.
+   */
+  void deserializeFileNodeListFragment(FileNodeList data, FileChunkReference next, FileNodePtr curPath) throws IOException {
+    data.fileNodeListHeader = deserializeFileNodeListHeader();
     boolean terminated = false;
     while (offset + 24 <= end) { // while there are at least 24 bytes free
       // 24 = sizeof(nextFragment) [12 bytes] + sizeof(footer) [8 bytes]
       // + 4 bytes for the FileNode header
       CheckedFileNodePushBack pushBack = new CheckedFileNodePushBack(data);
       try {
-        FileNode fileNode = deserializeFileNode(data.get(data.size()-1), curPath);
+        FileNode fileNode = deserializeFileNode(data.children.get(data.children.size()-1), curPath);
         if (fileNode.id == FndStructureConstants.ChunkTerminatorFND || fileNode.id == 0) {
           terminated = true;
           break;
         }
         pushBack.commit();
         FileNode dereference = curPath.dereference(document);
-        FileNode lastChild = data.get(data.size() - 1);
+        FileNode lastChild = data.children.get(data.children.size() - 1);
         assert dereference.equals(lastChild); // is this correct? or should we be checking the pointer?
         Integer curPathOffset = curPath.offsets.get(curPath.offsets.size() - 1);
         curPath.offsets.set(curPath.offsets.size() - 1, curPathOffset + 1);
@@ -294,6 +321,9 @@ public class OneNotePtr {
       } else {
         idDesc = "gosid";
       }
+      // Specifies the identity of the object space being specified by this object space manifest list.
+      // MUST match the ObjectSpaceManifestListReferenceFND.gosid field of the FileNode structure that referenced
+      // this file node list.
       data.gosid = deserializeExtendedGUID();
       //LOG.debug("{}gosid {}", getIndent(), data.gosid.toString().c_str());
     } else if (data.id == FndStructureConstants.ObjectSpaceManifestListReferenceFND) {
@@ -436,6 +466,12 @@ public class OneNotePtr {
     } else if (data.id == FndStructureConstants.FileDataStoreListReferenceFND) {
       // already processed this
     } else if (data.id == FndStructureConstants.FileDataStoreObjectReferenceFND) {
+
+      FileChunkReference ref = deserializeFileChunkReference64();
+      GUID guid = deserializeGUID();
+      ExtendedGUID extendedGuid = new ExtendedGUID(guid, 0);
+      LOG.info("found extended guid {}", extendedGuid);
+      document.guidToRef.put(extendedGuid, ref);
       OneNotePtr fileDataStorePtr = new OneNotePtr(this);
       fileDataStorePtr.reposition(data.ref);
 
@@ -467,7 +503,7 @@ public class OneNotePtr {
       if (data.id == FndStructureConstants.CanRevise.ReadOnlyObjectDeclaration2RefCountFND
           || data.id == FndStructureConstants.CanRevise.ReadOnlyObjectDeclaration2LargeRefCountFND) {
         data.subType.objectDeclarationWithRefCount.readOnly.md5 = new byte[16];
-        IOUtils.read(in, data.subType.objectDeclarationWithRefCount.readOnly.md5);
+        deserializeBytes(data.subType.objectDeclarationWithRefCount.readOnly.md5);
       }
       idDesc = "oid";
       postprocessObjectDeclarationContents(data, curPath);
@@ -529,11 +565,15 @@ public class OneNotePtr {
       document.revisionMap.putIfAbsent(document.currentRevision, new Revision());
       Revision currentRevision = document.revisionMap.get(document.currentRevision);
       currentRevision.manifestList.add(curPath);
+    } else {
+      LOG.debug("No fnd needed to be parsed for data.id=0x" + Long.toHexString(data.id) + " (" + FndStructureConstants.nameOf(data.id) + ")");
     }
     if (data.baseType == 2) {
+      // Generic baseType == 2 parser - means we have children to parse.
       OneNotePtr subList = new OneNotePtr(this);
+      // position the subList pointer to the data.ref and deserialize recursively.
       subList.reposition(data.ref);
-      subList.deserializeFileNodeList(data.children, curPath);
+      subList.deserializeFileNodeList(data.childFileNodeList, curPath);
     }
 
     offset = backup.offset + data.size;
@@ -551,6 +591,8 @@ public class OneNotePtr {
       if (data.hasGctxid()) {
         LOG.debug("{}gctxid {}", getIndent(), data.gctxid);
       }
+    } else if (!data.gosid.equals(ExtendedGUID.nil())) {
+      LOG.info("Non base type == 1 guid {}", data.gosid);
     }
     --indentLevel;
     if (data.gosid.equals(ExtendedGUID.nil())) {
@@ -560,6 +602,14 @@ public class OneNotePtr {
           data.gosid, offset, end);
     }
     return data;
+  }
+
+  private void deserializeBytes(byte[] bytes) throws IOException {
+    if (channel.position() != offset) {
+      channel.position(offset);
+    }
+    IOUtils.readFully(in, bytes);
+    offset = channel.position();
   }
 
   private ObjectDeclarationWithRefCountBody deserializeObjectDeclarationWithRefCountBody() throws IOException {
@@ -687,6 +737,36 @@ public class OneNotePtr {
     return new ExtendedGUID(guid, n);
   }
 
+  /**
+   * Depending on stpFormat and cbFormat, will deserialize a FileChunkReference.
+   *
+   * @param stpFormat An unsigned integer that specifies the size and format of the
+   * FileNodeChunkReference.stp field specified by the fnd field if this FileNode structure has a
+   * value of the BaseType field equal to 1 or 2. MUST be ignored if the value of the BaseType field
+   * of this FileNode structure is equal to 0. The meaning of the StpFormat field is given by the
+   * following table.
+   * Value Meaning
+   * 0 8 bytes, uncompressed.
+   * 1 4 bytes, uncompressed.
+   * 2 2 bytes, compressed.
+   * 3 4 bytes, compressed.
+   * The value of an uncompressed file pointer specifies a location in the file. To uncompress a
+   * compressed file pointer, multiply the value by 8.
+   * @param cbFormat An unsigned integer that specifies the size and format of the
+   * FileNodeChunkReference.cb field specified by the fnd field if this FileNode structure has a
+   * BaseType field value equal to 1 or 2. MUST be 0 and MUST be ignored if BaseType of this
+   * FileNode structure is equal to 0. The meaning of CbFormat is given by the following table.
+   * Value Meaning
+   * 0 4 bytes, uncompressed.
+   * 1 8 bytes, uncompressed.
+   * 2 1 byte, compressed.
+   * 3 2 bytes, compressed.
+   * The value of an uncompressed byte count specifies the size, in bytes, of the data referenced by a
+   * FileNodeChunkReference structure. To uncompress a compressed byte count,
+   * multiply the value by 8.
+   * @return
+   * @throws IOException
+   */
   FileChunkReference deserializeVarFileChunkReference(long stpFormat, long cbFormat) throws IOException {
     FileChunkReference data = new FileChunkReference(0, 0);
     long local8;
@@ -739,17 +819,26 @@ public class OneNotePtr {
   }
 
   FileNodeListHeader deserializeFileNodeListHeader() throws IOException {
+    long positionOfThisHeader = offset;
     long uintMagic = deserializeLittleEndianLong();
     long fileNodeListId = deserializeLittleEndianInt();
     long nFragmentSequence = deserializeLittleEndianInt();
 
-    return new FileNodeListHeader(uintMagic, fileNodeListId, nFragmentSequence);
+    return new FileNodeListHeader(positionOfThisHeader, uintMagic, fileNodeListId, nFragmentSequence);
   }
 
+  /**
+   * For an object declaration file node, after parsing all the fnd variables, now we will process
+   * the object declaration's contents.
+   *
+   * @param data The FileNode containing all the fnd variable's data.
+   * @param curPtr The current pointer.
+   * @throws IOException
+   */
   private void postprocessObjectDeclarationContents(FileNode data, FileNodePtr curPtr) throws IOException {
     data.gosid = data.subType.objectDeclarationWithRefCount.body.oid.guid;
     document.guidToObject.put(data.gosid, new FileNodePtr(curPtr));
-    if (data.subType.objectDeclarationWithRefCount.body.jcid.isPropertySet) {
+    if (data.subType.objectDeclarationWithRefCount.body.jcid.isObjectSpaceObjectPropSet()) {
       OneNotePtr objectSpacePropSetPtr = new OneNotePtr(this);
       objectSpacePropSetPtr.reposition(data.ref);
       data.subType.objectDeclarationWithRefCount.objectRef = objectSpacePropSetPtr.deserializeObjectSpaceObjectPropSet();

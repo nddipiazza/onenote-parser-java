@@ -42,6 +42,9 @@ public class OneNoteTreeWalker implements AutoCloseable {
 
   public List<Map<String, Object>> walkTree() throws IOException {
     List<Map<String, Object>> res = new ArrayList<>();
+
+    // TODO - i'm not seeing important elements that we need so i'm just walking all docs at the root for now,
+    // instead of walking the most recent revision.
 //    for (ExtendedGUID revisionListGuid : oneNoteDocument.revisionListOrder) {
 //      Map<String, Object> structure = new HashMap<>();
 //      structure.put("oneNoteType", "Revision");
@@ -50,9 +53,7 @@ public class OneNoteTreeWalker implements AutoCloseable {
 //      structure.put("fileNode", walkRevision(fileNodePtr));
 //      res.add(structure);
 //    }
-    for (FileNode fileNode : oneNoteDocument.root) {
-      res.add(walkFileNode(fileNode));
-    }
+    res.add(walkFileNodeList(oneNoteDocument.root));
     return res;
   }
 
@@ -65,18 +66,18 @@ public class OneNoteTreeWalker implements AutoCloseable {
     Map<String, Object> structure = new HashMap<>();
     structure.put("oneNoteType", "FileNodePointer");
     structure.put("offsets", fileNodePtr.offsets);
-    FileNode fileNode = fileNodePtr.dereference(oneNoteDocument);
-    structure.put("fileNodeId", fileNode.id);
-    if (fileNode.gosid != null) {
-      structure.put("gosid", fileNode.gosid.toString());
+    FileNode revisionFileNode = fileNodePtr.dereference(oneNoteDocument);
+    structure.put("fileNodeId", revisionFileNode.id);
+    if (revisionFileNode.gosid != null) {
+      structure.put("gosid", revisionFileNode.gosid.toString());
     }
-    structure.put("subType", fileNode.subType);
-    structure.put("size", fileNode.size);
-    structure.put("isFileData", fileNode.isFileData);
+    structure.put("subType", revisionFileNode.subType);
+    structure.put("size", revisionFileNode.size);
+    structure.put("isFileData", revisionFileNode.isFileData);
 
     Set<ExtendedGUID> validRevisions = new HashSet<>();
-    for (int i = fileNode.children.size() - 1; i >= 0; --i) {
-      FileNode child = fileNode.children.get(i);
+    for (int i = revisionFileNode.childFileNodeList.children.size() - 1; i >= 0; --i) {
+      FileNode child = revisionFileNode.childFileNodeList.children.get(i);
       if (roleAndContext != null && hasRevisionRole(child.gosid, roleAndContext)) {
         validRevisions.add(child.gosid);
         if (onlyLatestRevision) {
@@ -86,7 +87,7 @@ public class OneNoteTreeWalker implements AutoCloseable {
     }
     List<Map<String, Object>> children = new ArrayList<>();
     boolean okGroup = false;
-    for (FileNode child : fileNode.children) {
+    for (FileNode child : revisionFileNode.childFileNodeList.children) {
       if (child.id == FndStructureConstants.RevisionManifestStart4FND ||
           child.id == FndStructureConstants.RevisionManifestStart6FND ||
           child.id == FndStructureConstants.RevisionManifestStart7FND) {
@@ -102,7 +103,10 @@ public class OneNoteTreeWalker implements AutoCloseable {
       }
     }
     if (!children.isEmpty()) {
-      structure.put("children", children);
+      Map<String, Object> childFileNodeListMap = new HashMap<>();
+      childFileNodeListMap.put("fileNodeListHeader", revisionFileNode.childFileNodeList.fileNodeListHeader);
+      childFileNodeListMap.put("children", children);
+      structure.put("revisionFileNodeList", childFileNodeListMap);
     }
     return structure;
   }
@@ -115,6 +119,16 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return Collections.emptyMap();
   }
 
+  public Map<String, Object> walkFileNodeList(FileNodeList fileNodeList) throws IOException {
+    Map<String, Object> structure = new HashMap<>();
+    structure.put("oneNoteType", "FileNodeList");
+    structure.put("fileNodeListHeader", fileNodeList.fileNodeListHeader);
+    if (!fileNodeList.children.isEmpty()) {
+      structure.put("children", fileNodeList.children);
+    }
+    return structure;
+  }
+
   public Map<String, Object> walkFileNode(FileNode fileNode) throws IOException {
     Map<String, Object> structure = new HashMap<>();
     structure.put("oneNoteType", "FileNode");
@@ -124,12 +138,8 @@ public class OneNoteTreeWalker implements AutoCloseable {
     structure.put("fileNodeIdName", FndStructureConstants.nameOf(fileNode.id));
     structure.put("fileNodeBaseType", "0x" + Long.toHexString(fileNode.baseType));
     structure.put("isFileData", fileNode.isFileData);
-    List<Map<String, Object>> children = new ArrayList<>();
-    for (FileNode child : fileNode.children) {
-      children.add(walkFileNode(child));
-    }
-    if (!children.isEmpty()) {
-      structure.put("children", children);
+    if (fileNode.childFileNodeList != null && fileNode.childFileNodeList.fileNodeListHeader != null) {
+      structure.put("childFileNodeList", walkFileNodeList(fileNode.childFileNodeList));
     }
     if (fileNode.propertySet != null) {
       List<Map<String, Object>> propSet = processPropertySet(fileNode.propertySet);

@@ -1,10 +1,13 @@
 package org.apache.tika.onenote;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class CompactID {
   char n;
   long guidIndex; //only occupies 24 bits
   ExtendedGUID guid;
 
+  @JsonIgnore
   public char getN() {
     return n;
   }
@@ -14,6 +17,7 @@ public class CompactID {
     return this;
   }
 
+  @JsonIgnore
   public long getGuidIndex() {
     return guidIndex;
   }
@@ -23,6 +27,7 @@ public class CompactID {
     return this;
   }
 
+  @JsonIgnore
   public ExtendedGUID getGuid() {
     return guid;
   }
@@ -30,5 +35,15 @@ public class CompactID {
   public CompactID setGuid(ExtendedGUID guid) {
     this.guid = guid;
     return this;
+  }
+
+  public String getCompactIDString() {
+    return new StringBuilder()
+        .append(guid)
+        .append(", index=")
+        .append(guidIndex)
+        .append(", n=")
+        .append((int)n)
+        .toString();
   }
 }

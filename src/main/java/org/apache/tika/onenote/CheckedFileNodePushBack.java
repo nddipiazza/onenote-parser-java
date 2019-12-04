@@ -1,15 +1,13 @@
 package org.apache.tika.onenote;
 
-import java.util.List;
-
 public class CheckedFileNodePushBack {
-  List<FileNode> fileNodeList;
+  FileNodeList fileNodeList;
   boolean committed;
 
-  public CheckedFileNodePushBack(List<FileNode> fileNodeList) {
+  public CheckedFileNodePushBack(FileNodeList fileNodeList) {
     committed = true;
     this.fileNodeList = fileNodeList;
-    fileNodeList.add(new FileNode());
+    fileNodeList.children.add(new FileNode());
     committed = false;
   }
 
@@ -19,7 +17,7 @@ public class CheckedFileNodePushBack {
 
   public void popBackIfNotCommitted() {
     if (!committed) {
-      fileNodeList.remove(fileNodeList.size()-1);
+      fileNodeList.children.remove(fileNodeList.children.size()-1);
     }
   }
 }

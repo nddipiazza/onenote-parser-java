@@ -2,6 +2,24 @@ package org.apache.tika.onenote;
 
 import java.util.Objects;
 
+/**
+ * A file chunk reference specifies a reference to data in the file.
+ *
+ * Each file chunk reference contains an <pre>stp</pre> field and a <pre>cb</pre> field.
+ *
+ * The <pre>stp</pre> field is a stream pointer that specifies the offset, in bytes, from the beginning of the file where the referenced
+ * data is located.
+ *
+ * The <pre>cb</pre> field specifies the size, in bytes, of the referenced data. The sizes, in bytes, of the
+ * stp and cb fields are specified by the structures in this section.
+ *
+ * There are some Special values:
+ *
+ * fcrNil - Specifies a file chunk reference where all bits of the stp field are set to 1, and all bits of the cb field are set to zero.
+ *
+ * fcrZero - Specifies a file chunk reference where all bits of the stp and cb fields are set to zero.
+ *
+ */
 public class FileChunkReference {
 
   long stp;

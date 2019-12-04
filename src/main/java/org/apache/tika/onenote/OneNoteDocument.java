@@ -18,7 +18,7 @@ public class OneNoteDocument {
 
   Multimap<ExtendedGUID, Pair<Long, ExtendedGUID>> revisionRoleMap = MultimapBuilder.linkedHashKeys().arrayListValues().build();
   ExtendedGUID currentRevision = ExtendedGUID.nil();
-  List<FileNode> root = new ArrayList<>();
+  FileNodeList root = new FileNodeList();
   
   public OneNoteDocument() {
 
@@ -112,11 +112,11 @@ public class OneNoteDocument {
     return this;
   }
 
-  public List<FileNode> getRoot() {
+  public FileNodeList getRoot() {
     return root;
   }
 
-  public OneNoteDocument setRoot(List<FileNode> root) {
+  public OneNoteDocument setRoot(FileNodeList root) {
     this.root = root;
     return this;
   }

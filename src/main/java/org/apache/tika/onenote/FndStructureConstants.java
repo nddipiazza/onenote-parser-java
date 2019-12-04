@@ -1,5 +1,13 @@
 package org.apache.tika.onenote;
 
+/**
+ * Some types of FileNodes have an "fnd" variable.
+ * FND stands for "File Node Data"
+ *
+ * These are the different types of FND variables there are.
+ *
+ * The value of each constant corresponds to the FileNodeID property for the file node.
+ */
 public final class FndStructureConstants {
   private FndStructureConstants() {
     // no op

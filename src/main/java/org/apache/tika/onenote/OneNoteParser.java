@@ -45,10 +45,29 @@ public class OneNoteParser {
     this.channel = channel;
   }
 
+  /**
+   * OneNote files are of format:
+   *
+   * The header (section 2.3.1 in MS-ONESTORE) is the first 1024 bytes of the file. It contains references to the other structures in the file as well as metadata about the file.
+   * The free chunk list (section 2.3.2 in MS-ONESTORE) defines where there are free spaces in the file where data can be written.
+   * The transaction log (section 2.3.3 in MS-ONESTORE) stores the state and length of each file node list (section 2.4 in MS-ONESTORE) in the file.
+   * The hashed chunk list (section 2.3.4 in MS-ONESTORE) stores read-only objects in the file that can be referenced by multiple revisions (section 2.1.8 in MS-ONESTORE).
+   * The root file node list (section 2.1.14 in MS-ONESTORE) is the file node list that is the root of the tree of all file node lists in the file.
+   *
+   * In this method we first parse the header.
+   *
+   * After parsing the header, this results in header.fcrFileNodeListRoot that points to the first
+   * @return
+   * @throws IOException
+   */
   public OneNoteDocument parse() throws IOException {
     OneNoteDocument oneNoteDocument = new OneNoteDocument();
     OneNotePtr oneNotePtr = new OneNotePtr(oneNoteDocument, in, channel);
+    // First parse out the header.
     Header header = oneNotePtr.deserializeHeader();
+
+    // Now that we parsed the header, the "root file node list"
+
     oneNotePtr.reposition(header.fcrFileNodeListRoot);
     FileNodePtr curPath = new FileNodePtr();
     oneNotePtr.deserializeFileNodeList(oneNoteDocument.root, curPath);

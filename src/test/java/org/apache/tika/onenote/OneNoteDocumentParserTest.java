@@ -54,7 +54,7 @@ public class OneNoteDocumentParserTest {
       OneNoteParser oneNoteParser = new OneNoteParser(fis, fc);
       OneNoteDocument oneNoteDocumentDoc = oneNoteParser.parse();
 
-      Assert.assertEquals(5, oneNoteDocumentDoc.root.size());
+      Assert.assertEquals(5, oneNoteDocumentDoc.root.children.size());
 
       Pair<Long, ExtendedGUID> roleAndContext = Pair.of(1L, ExtendedGUID.nil());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -77,7 +77,7 @@ public class OneNoteDocumentParserTest {
       OneNoteParser oneNoteParser = new OneNoteParser(fis, fc);
       OneNoteDocument oneNoteDocumentDoc = oneNoteParser.parse();
 
-      Assert.assertEquals(5, oneNoteDocumentDoc.root.size());
+      Assert.assertEquals(5, oneNoteDocumentDoc.root.children.size());
 
       Pair<Long, ExtendedGUID> roleAndContext = Pair.of(1L, ExtendedGUID.nil());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -99,7 +99,7 @@ public class OneNoteDocumentParserTest {
       OneNoteParser oneNoteParser = new OneNoteParser(fis, fc);
       OneNoteDocument oneNoteDocumentDoc = oneNoteParser.parse();
 
-      Assert.assertEquals(5, oneNoteDocumentDoc.root.size());
+      Assert.assertEquals(5, oneNoteDocumentDoc.root.children.size());
 
       Pair<Long, ExtendedGUID> roleAndContext = Pair.of(1L, ExtendedGUID.nil());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -121,7 +121,7 @@ public class OneNoteDocumentParserTest {
       OneNoteParser oneNoteParser = new OneNoteParser(fis, fc);
       OneNoteDocument oneNoteDocumentDoc = oneNoteParser.parse();
 
-      Assert.assertEquals(5, oneNoteDocumentDoc.root.size());
+      Assert.assertEquals(5, oneNoteDocumentDoc.root.children.size());
 
       Pair<Long, ExtendedGUID> roleAndContext = Pair.of(1L, ExtendedGUID.nil());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();

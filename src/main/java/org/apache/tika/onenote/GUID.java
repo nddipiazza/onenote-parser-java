@@ -1,5 +1,6 @@
 package org.apache.tika.onenote;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang.StringUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -8,6 +9,11 @@ import java.util.Arrays;
 public class GUID implements Comparable<GUID> {
   int[] guid;
 
+  /**
+   * Converts a GUID of format: {AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE} (in bytes) to a GUID object.
+   * @param guid The bytes that contain string in UTF-16 format of {AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}
+   * @return GUID object parsed from guid bytes.
+   */
   public static GUID fromCurlyBraceUTF16Bytes(byte[] guid) {
     int [] intGuid = new int[16];
     String utf16Str = new String(guid, StandardCharsets.UTF_16LE).replaceAll("\\{", "")
@@ -89,6 +95,7 @@ public class GUID implements Comparable<GUID> {
     return new GUID(new int[16]);
   }
 
+  @JsonIgnore
   public int[] getGuid() {
     return guid;
   }
@@ -96,5 +103,9 @@ public class GUID implements Comparable<GUID> {
   public GUID setGuid(int[] guid) {
     this.guid = guid;
     return this;
+  }
+
+  public String getGuidString() {
+    return guid.toString();
   }
 }

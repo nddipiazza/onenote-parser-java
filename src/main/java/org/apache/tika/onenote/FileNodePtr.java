@@ -18,12 +18,12 @@ public class FileNodePtr {
     if (offsets.isEmpty()) {
       return null;
     }
-    if (offsets.get(0) >= document.root.size()) {
+    if (offsets.get(0) >= document.root.children.size()) {
       throw new RuntimeException("Exceeded root child size");
     }
-    FileNode cur = document.root.get(offsets.get(0));
+    FileNode cur = document.root.children.get(offsets.get(0));
     for (int i = 1, ie = offsets.size(); i < ie; ++i) {
-      cur = cur.children.get(offsets.get(i));
+      cur = cur.childFileNodeList.children.get(offsets.get(i));
     }
     return cur;
   }

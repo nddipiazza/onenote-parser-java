@@ -1,5 +1,7 @@
 package org.apache.tika.onenote;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Objects;
 
 public class ExtendedGUID implements Comparable<ExtendedGUID> {
@@ -46,6 +48,7 @@ public class ExtendedGUID implements Comparable<ExtendedGUID> {
     return String.format("%s [%d]", guid, n);
   }
 
+  @JsonIgnore
   public GUID getGuid() {
     return guid;
   }
@@ -55,6 +58,11 @@ public class ExtendedGUID implements Comparable<ExtendedGUID> {
     return this;
   }
 
+  public String getExtendedGuidString() {
+    return guid.toString() + " [" + n + "]";
+  }
+
+  @JsonIgnore
   public long getN() {
     return n;
   }

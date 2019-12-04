@@ -37,6 +37,15 @@ public class JCID {
   boolean isFileData;
   boolean isReadOnly;
 
+  /**
+   * If the value of the JCID.IsPropertySet field is "true" or if only JCID.index is specified, then the data
+   * for the Object Space Object structure MUST be an ObjectSpaceObjectPropSet structure.
+   * @return true if is ObjectSpaceObjectPropSet. false otherwise.
+   */
+  public boolean isObjectSpaceObjectPropSet() {
+    return isPropertySet || !isBinary && !isGraphNode && !isFileData && !isReadOnly && index > 0;
+  }
+
   public void loadFrom32BitIndex(long fullIndex) {
     index = fullIndex & 0xffff;
     isBinary = ((fullIndex >> 16) & 1) == 1;
