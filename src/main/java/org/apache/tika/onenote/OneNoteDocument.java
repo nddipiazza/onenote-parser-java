@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class OneNoteDocument {
+  OneNoteHeader header;
   List<ExtendedGUID> revisionListOrder = new ArrayList<>();
   Map<ExtendedGUID, Revision> revisionMap = new HashMap<>();
   Map<ExtendedGUID, FileNodePtr> revisionManifestLists = new HashMap<>();

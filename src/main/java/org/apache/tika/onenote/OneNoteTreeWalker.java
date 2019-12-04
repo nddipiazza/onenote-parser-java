@@ -22,37 +22,42 @@ import java.util.Set;
 
 public class OneNoteTreeWalker implements AutoCloseable {
 
+  private OneNoteTreeWalkerOptions options;
   private OneNoteDocument oneNoteDocument;
-  private boolean onlyLatestRevision;
   private InputStream in;
   private PrintWriter printWriter;
   private SeekableByteChannel channel;
   private Pair<Long, ExtendedGUID> roleAndContext;
 
-  public OneNoteTreeWalker(OneNoteDocument oneNoteDocument, boolean onlyLatestRevision,
+  public OneNoteTreeWalker(OneNoteTreeWalkerOptions options, OneNoteDocument oneNoteDocument,
                            InputStream in, SeekableByteChannel channel, OutputStream out,
                            Pair<Long, ExtendedGUID> roleAndContext) {
+    this.options = options;
     this.oneNoteDocument = oneNoteDocument;
-    this.onlyLatestRevision = onlyLatestRevision;
     this.in = in;
     this.channel = channel;
-    this.printWriter = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_16LE), true);
+    this.printWriter = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8), true);
     this.roleAndContext = roleAndContext;
   }
 
-  public List<Map<String, Object>> walkTree() throws IOException {
-    List<Map<String, Object>> res = new ArrayList<>();
+  public Map<String, Object> walkTree() throws IOException {
+    Map<String, Object> structure = new HashMap<>();
+    structure.put("header", oneNoteDocument.header);
+    structure.put("rootFileNodes", walkRootFileNodes());
+    return structure;
+  }
 
-    // TODO - i'm not seeing important elements that we need so i'm just walking all docs at the root for now,
-    // instead of walking the most recent revision.
-//    for (ExtendedGUID revisionListGuid : oneNoteDocument.revisionListOrder) {
-//      Map<String, Object> structure = new HashMap<>();
-//      structure.put("oneNoteType", "Revision");
-//      structure.put("revisionListGuid", revisionListGuid.toString());
-//      FileNodePtr fileNodePtr = oneNoteDocument.revisionManifestLists.get(revisionListGuid);
-//      structure.put("fileNode", walkRevision(fileNodePtr));
-//      res.add(structure);
-//    }
+  public List<Map<String, Object>> walkRootFileNodes() throws IOException {
+    List<Map<String, Object>> res = new ArrayList<>();
+    // TODO - This does not seem to get all the data. Will just crawl everything at the root for now.
+//        for (ExtendedGUID revisionListGuid : oneNoteDocument.revisionListOrder) {
+//          Map<String, Object> structure = new HashMap<>();
+//          structure.put("oneNoteType", "Revision");
+//          structure.put("revisionListGuid", revisionListGuid.toString());
+//          FileNodePtr fileNodePtr = oneNoteDocument.revisionManifestLists.get(revisionListGuid);
+//          structure.put("fileNode", walkRevision(fileNodePtr));
+//          res.add(structure);
+//        }
     res.add(walkFileNodeList(oneNoteDocument.root));
     return res;
   }
@@ -80,7 +85,7 @@ public class OneNoteTreeWalker implements AutoCloseable {
       FileNode child = revisionFileNode.childFileNodeList.children.get(i);
       if (roleAndContext != null && hasRevisionRole(child.gosid, roleAndContext)) {
         validRevisions.add(child.gosid);
-        if (onlyLatestRevision) {
+        if (options.isOnlyLatestRevision()) {
           break;
         }
       }
@@ -124,7 +129,11 @@ public class OneNoteTreeWalker implements AutoCloseable {
     structure.put("oneNoteType", "FileNodeList");
     structure.put("fileNodeListHeader", fileNodeList.fileNodeListHeader);
     if (!fileNodeList.children.isEmpty()) {
-      structure.put("children", fileNodeList.children);
+      List<Map<String, Object>> children = new ArrayList<>();
+      for (FileNode child : fileNodeList.children) {
+        children.add(walkFileNode(child));
+      }
+      structure.put("children", children);
     }
     return structure;
   }
@@ -138,6 +147,7 @@ public class OneNoteTreeWalker implements AutoCloseable {
     structure.put("fileNodeIdName", FndStructureConstants.nameOf(fileNode.id));
     structure.put("fileNodeBaseType", "0x" + Long.toHexString(fileNode.baseType));
     structure.put("isFileData", fileNode.isFileData);
+    structure.put("idDesc", fileNode.idDesc);
     if (fileNode.childFileNodeList != null && fileNode.childFileNodeList.fileNodeListHeader != null) {
       structure.put("childFileNodeList", walkFileNodeList(fileNode.childFileNodeList));
     }
@@ -147,6 +157,21 @@ public class OneNoteTreeWalker implements AutoCloseable {
         structure.put("propertySet", propSet);
       }
     }
+    if (fileNode.subType.fileDataStoreObjectReference.ref != null &&
+        !FileChunkReference.nil().equals(fileNode.subType.fileDataStoreObjectReference.ref.fileData)) {
+      structure.put("fileDataStoreObjectReference", walkFileDataStoreObjectReference(fileNode.subType.fileDataStoreObjectReference));
+    }
+    return structure;
+  }
+
+  private Map<String, Object> walkFileDataStoreObjectReference(FileDataStoreObjectReference fileDataStoreObjectReference) throws IOException {
+    Map<String, Object> structure = new HashMap<>();
+    OneNotePtr content = new OneNotePtr(oneNoteDocument, in, channel);
+    content.reposition(fileDataStoreObjectReference.ref.fileData);
+    byte[] buf = new byte[(int)fileDataStoreObjectReference.ref.fileData.cb];
+    IOUtils.readFully(in, buf);
+    structure.put("fileDataStoreObjectMetadata", fileDataStoreObjectReference);
+    structure.put("dataBase64", Base64.encodeBase64String(buf));
     return structure;
   }
 
@@ -158,34 +183,53 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return propValues;
   }
 
+  private boolean propertyIsBinary(OneNotePropertyEnum property) {
+    return property == OneNotePropertyEnum.RgOutlineIndentDistance ||
+        property == OneNotePropertyEnum.NotebookManagementEntityGuid ||
+        property == OneNotePropertyEnum.RichEditTextUnicode;
+  }
+
   private Map<String, Object> processPropertyValue(PropertyValue propertyValue) throws IOException {
     Map<String, Object> propMap = new HashMap<>();
     propMap.put("oneNoteType", "PropertyValue");
     propMap.put("propertyId", propertyValue.propertyId.toString());
+
     if (propertyValue.propertyId.type > 0 && propertyValue.propertyId.type <= 6) {
       propMap.put("scalar", propertyValue.scalar);
-    } else if (propertyValue.propertyId.type == 7) {
+    } else {
       OneNotePtr content = new OneNotePtr(oneNoteDocument, in, channel);
       content.reposition(propertyValue.rawData);
-      boolean isBinary = propertyValue.propertyId.propertyEnum == OneNotePropertyEnum.RgOutlineIndentDistance ||
-          propertyValue.propertyId.propertyEnum == OneNotePropertyEnum.NotebookManagementEntityGuid;
+      boolean isBinary = propertyIsBinary(propertyValue.propertyId.propertyEnum);
+      propMap.put("isBinary", isBinary);
       if ((content.size() & 1) == 0
           && propertyValue.propertyId.propertyEnum != OneNotePropertyEnum.TextExtendedAscii
           && isBinary == false) {
         byte[] buf = new byte[content.size()];
         IOUtils.readFully(in, buf);
-        propMap.put("dataB64", Base64.encodeBase64String(buf));
         propMap.put("dataUnicode16LE", new String(buf, StandardCharsets.UTF_16LE));
+        if (options.getUtf16PropertiesToPrint().contains(propertyValue.propertyId)) {
+          printWriter.println(propMap.get("dataUnicode16LE"));
+        }
+      } else if (propertyValue.propertyId.propertyEnum == OneNotePropertyEnum.TextExtendedAscii) {
+        byte[] buf = new byte[content.size()];
+        IOUtils.readFully(in, buf);
+        propMap.put("dataAscii", new String(buf, StandardCharsets.US_ASCII));
+        printWriter.println(propMap.get("dataAscii"));
       } else if (isBinary == false) {
         byte[] buf = new byte[content.size()];
         IOUtils.readFully(in, buf);
-        propMap.put("dataB64", Base64.encodeBase64String(buf));
         propMap.put("dataUnicode16LE", new String(buf, StandardCharsets.UTF_16LE));
+        if (options.getUtf16PropertiesToPrint().contains(propertyValue.propertyId)) {
+          printWriter.println(propMap.get("dataUnicode16LE"));
+        }
       } else {
         byte[] buf = new byte[content.size()];
         IOUtils.readFully(in, buf);
-        propMap.put("dataB64", Base64.encodeBase64String(buf));
-        propMap.put("dataUnicode16LE", new String(buf, StandardCharsets.UTF_16LE));
+        if (propertyValue.propertyId.propertyEnum == OneNotePropertyEnum.RichEditTextUnicode) {
+          propMap.put("rtfBase64", Base64.encodeBase64String(buf));
+        } else {
+          propMap.put("dataB64", Base64.encodeBase64String(buf));
+        }
       }
     }
     if (propertyValue.compactIDs != null) {

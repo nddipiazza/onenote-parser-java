@@ -67,6 +67,8 @@ public class FileNode {
 
   FileNodeUnion subType = new FileNodeUnion();
 
+  String idDesc;
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -233,6 +235,14 @@ public class FileNode {
           gosid);
 
     }
+  }
+
+  /**
+   * A description of what this GUID id means in this context.
+   * @return A description of what this GUID id means in this context.
+   */
+  public String getIdDesc() {
+    return idDesc;
   }
 
   @Override

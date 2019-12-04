@@ -35,6 +35,44 @@ public class OneNotePtr {
   private static final byte [] IFNDF = new byte[] {
       60, 0, 105, 0, 102, 0, 110, 0, 100, 0, 102, 0, 62, 0
   };
+
+  private static final GUID FILE_DATA_STORE_OBJ_HEADER = new GUID(new int[] {
+      0xBD,
+      0xE3,
+      0x16,
+      0xE7,
+      0x26,
+      0x65,
+      0x45,
+      0x11,
+      0xA4,
+      0xC4,
+      0x8D,
+      0x4D,
+      0x0B,
+      0x7A,
+      0x9E,
+      0xAC
+  });
+
+  private static final GUID FILE_DATA_STORE_OBJ_FOOTER = new GUID(new int[] {
+      0x71,
+      0xFB,
+      0xA7,
+      0x22,
+      0x0F,
+      0x79,
+      0x4A,
+      0x0B,
+      0xBB,
+      0x13,
+      0x89,
+      0x92,
+      0x56,
+      0x42,
+      0x6B,
+      0x24});
+
   public static final int IFNDF_GUID_LENGTH = 38; // 36 char guid with a { and a } char.
   int indentLevel = 0;
 
@@ -62,8 +100,8 @@ public class OneNotePtr {
     this.indentLevel = oneNotePtr.indentLevel;
   }
 
-  public Header deserializeHeader() throws IOException {
-    Header data = new Header();
+  public OneNoteHeader deserializeHeader() throws IOException {
+    OneNoteHeader data = new OneNoteHeader();
     data.setGuidFileType(deserializeGUID())
       .setGuidFile(deserializeGUID())
       .setGuidLegacyFileVersion(deserializeGUID())
@@ -97,10 +135,10 @@ public class OneNotePtr {
       .setGrfDebugLogFlags(deserializeLittleEndianInt())
       .setFcrDebugLogA(deserializeFileChunkReference64x32())
       .setFcrDebugLogB(deserializeFileChunkReference64x32())
-      .setBuildInfoA(deserializeLittleEndianInt())
-      .setBuildInfoB(deserializeLittleEndianInt())
-      .setBuildInfoC(deserializeLittleEndianInt())
-      .setBuildInfoD(deserializeLittleEndianInt())
+      .setBuildNumberCreated(deserializeLittleEndianInt())
+      .setBuildNumberLastWroteToFile(deserializeLittleEndianInt())
+      .setBuildNumberOldestWritten(deserializeLittleEndianInt())
+      .setBuildNumberNewestWritten(deserializeLittleEndianInt())
       .setReserved(deserializedReservedHeader());
     return data;
   }
@@ -197,6 +235,16 @@ public class OneNotePtr {
 
   /**
    * Keep parsing file node list fragments until a nil file chunk reference is encountered.
+   *
+   * A file node list can be divided into one or more FileNodeListFragment
+   * structures. Each fragment can specify whether there are more fragments in the list and
+   * the location of the next fragment. Each fragment specifies a sub-sequence of FileNode structures
+   * from the file node list.
+   *
+   * When specifying the structure of a specific file node list in this document, the division of the list into
+   * fragments is ignored and FileNode structures with FileNode.FileNodeID field values equal to 0x0FF
+   * ("ChunkTerminatorFND") are not specified.
+   *
    * @param ptr The current OneNotePtr we are at currently.
    * @param fileNodeList The file node list to populate as we parse.
    * @param curPath The current FileNodePtr.
@@ -278,7 +326,6 @@ public class OneNotePtr {
   private FileNode deserializeFileNode(FileNode data, FileNodePtr curPath) throws IOException {
     OneNotePtr backup = new OneNotePtr(this);
     long reserved;
-    String idDesc = UNKNOWN;
 
     data.isFileData = false;
     data.gosid = ExtendedGUID.nil();
@@ -309,17 +356,16 @@ public class OneNotePtr {
       // would have thrown an error if invalid.
     }
     if (data.id == FndStructureConstants.ObjectGroupStartFND) {
-      idDesc = "oid(group)";
+      data.idDesc = "oid(group)";
       data.gosid = deserializeExtendedGUID();
-      //LOG.debug("{}gosid {}", getIndent(), data.gosid.toString().c_str());
     } else if (data.id == FndStructureConstants.ObjectGroupEndFND) {
       // no data
     } else if (data.id == FndStructureConstants.ObjectSpaceManifestRootFND
         || data.id == FndStructureConstants.ObjectSpaceManifestListStartFND) {
       if (data.id == FndStructureConstants.ObjectSpaceManifestRootFND) {
-        idDesc = "gosidRoot";
+        data.idDesc = "gosidRoot";
       } else {
-        idDesc = "gosid";
+        data.idDesc = "gosid";
       }
       // Specifies the identity of the object space being specified by this object space manifest list.
       // MUST match the ObjectSpaceManifestListReferenceFND.gosid field of the FileNode structure that referenced
@@ -328,12 +374,12 @@ public class OneNotePtr {
       //LOG.debug("{}gosid {}", getIndent(), data.gosid.toString().c_str());
     } else if (data.id == FndStructureConstants.ObjectSpaceManifestListReferenceFND) {
       data.gosid = deserializeExtendedGUID();
-      idDesc = "gosid";
+      data.idDesc = "gosid";
       //LOG.debug("{}gosid {}", getIndent(),data.gosid.toString().c_str());
       //children parsed in generic base_type 2 parser
     } else if (data.id == FndStructureConstants.RevisionManifestListStartFND) {
       data.gosid = deserializeExtendedGUID();
-      idDesc = "gosid";
+      data.idDesc = "gosid";
       FileNodePtr parentPath = new FileNodePtr(curPath);
       parentPath.nodeListPositions.remove(parentPath.nodeListPositions.size() - 1);
       FileNodePtrBackPush.numDescs++;
@@ -343,7 +389,7 @@ public class OneNotePtr {
       data.subType.revisionManifestListStart.nInstanceIgnored = deserializeLittleEndianInt();
     } else if (data.id == FndStructureConstants.RevisionManifestStart4FND) {
       data.gosid = deserializeExtendedGUID(); // the rid
-      idDesc = "rid";
+      data.idDesc = "rid";
       //LOG.debug("{}gosid {}", getIndent(), data.gosid.toString().c_str());
       data.subType.revisionManifest.ridDependent = deserializeExtendedGUID(); // the rid
       LOG.debug("{}dependent gosid {}", getIndent(), data.subType.revisionManifest.ridDependent);
@@ -356,7 +402,7 @@ public class OneNotePtr {
     } else if (data.id == FndStructureConstants.RevisionManifestStart6FND
         || data.id == FndStructureConstants.RevisionManifestStart7FND) {
       data.gosid = deserializeExtendedGUID(); // the rid
-      idDesc = "rid";
+      data.idDesc = "rid";
       //LOG.debug("{}gosid {}", getIndent(), data.gosid.toString().c_str());
       data.subType.revisionManifest.ridDependent = deserializeExtendedGUID(); // the rid
       LOG.debug("{}dependent gosid {}", getIndent(), data.subType.revisionManifest.ridDependent);
@@ -429,14 +475,14 @@ public class OneNotePtr {
     } else if (data.id == FndStructureConstants.RootObjectReference2FNDX) {
       data.subType.rootObjectReference.oidRoot = deserializeCompactID();
 
-      idDesc = "oidRoot";
+      data.idDesc = "oidRoot";
       data.gosid = data.subType.rootObjectReference.oidRoot.guid;
       data.subType.rootObjectReference.rootObjectReferenceBase.rootRole = deserializeLittleEndianInt();
 
       LOG.debug("{}Root role {}", getIndent(),
           data.subType.rootObjectReference.rootObjectReferenceBase.rootRole);
     } else if (data.id == FndStructureConstants.RootObjectReference3FND) {
-      idDesc = "oidRoot";
+      data.idDesc = "oidRoot";
       data.gosid = deserializeExtendedGUID();
 
       data.subType.rootObjectReference.rootObjectReferenceBase.rootRole = deserializeLittleEndianInt();
@@ -505,7 +551,7 @@ public class OneNotePtr {
         data.subType.objectDeclarationWithRefCount.readOnly.md5 = new byte[16];
         deserializeBytes(data.subType.objectDeclarationWithRefCount.readOnly.md5);
       }
-      idDesc = "oid";
+      data.idDesc = "oid";
       postprocessObjectDeclarationContents(data, curPath);
 
       LOG.debug("{}Ref Count JCID {}", getIndent(),
@@ -547,18 +593,18 @@ public class OneNotePtr {
         LOG.debug("{}Ignoring an external reference {}", getIndent(), new String(themChars, StandardCharsets.UTF_16LE));
       }
     } else if (data.id == FndStructureConstants.ObjectGroupListReferenceFND) {
-      idDesc = "object_group_id";
+      data.idDesc = "object_group_id";
       data.gosid = deserializeExtendedGUID(); // the object group id
 
       // the ref populates the FileNodeList children
     } else if (data.id == FndStructureConstants.ObjectGroupStartFND) {
-      idDesc = "object_group_id";
+      data.idDesc = "object_group_id";
       data.gosid = deserializeExtendedGUID(); // the oid
 
     } else if (data.id == FndStructureConstants.ObjectGroupEndFND) {
       // nothing to see here
     } else if (data.id == FndStructureConstants.DataSignatureGroupDefinitionFND) {
-      idDesc = "data_sig";
+      data.idDesc = "data_sig";
       data.gosid = deserializeExtendedGUID(); // the DataSignatureGroup
 
     } else if (data.id == FndStructureConstants.RevisionManifestListReferenceFND) {
@@ -598,7 +644,7 @@ public class OneNotePtr {
     if (data.gosid.equals(ExtendedGUID.nil())) {
       LOG.debug("{}End Node {} ({}) - Offset={}, End={}", getIndent(), FndStructureConstants.nameOf(data.id), (int) data.id, offset, end);
     } else {
-      LOG.debug("{}End Node {} ({}) {}:[{}] - Offset={}, End={}", getIndent(), FndStructureConstants.nameOf(data.id), (int) data.id, idDesc,
+      LOG.debug("{}End Node {} ({}) {}:[{}] - Offset={}, End={}", getIndent(), FndStructureConstants.nameOf(data.id), (int) data.id, data.idDesc,
           data.gosid, offset, end);
     }
     return data;
@@ -644,49 +690,40 @@ public class OneNotePtr {
     return data;
   }
 
+  /**
+   * The FileDataStoreObject structure specifies the data for a file data object.
+   *
+   * @return
+   * @throws IOException
+   */
   private FileDataStoreObject deserializeFileDataStoreObject() throws IOException {
     FileDataStoreObject data = new FileDataStoreObject();
-    data.header = deserializeGUID();
+    GUID header = deserializeGUID();
+    // TODO - the expected header is different per version of one note.
+//    if (!header.equals(FILE_DATA_STORE_OBJ_HEADER)) {
+//      throw new RuntimeException("Unexpected file data store object header: " + header);
+//    }
     long len = deserializeLittleEndianLong();
-    data.reserved0 = deserializeLittleEndianInt();
-    data.reserved = deserializeLittleEndianLong();
+    long unused = deserializeLittleEndianInt();
+    long reserved = deserializeLittleEndianLong();
     if (offset + len + 16 > end) {
       throw new RuntimeException("SEGV error");
     }
-    if (data.reserved0 > 0 || data.reserved > 0) {
+    if (unused > 0 || reserved > 0) {
       throw new RuntimeException("SEGV error");
     }
     data.fileData.stp = offset;
     data.fileData.cb = len;
     offset += len;
     while ((offset & 0x7) > 0) {
+      // Padding is added to the end of the FileData stream to ensure that it ends on an 8-byte boundary.
       ++offset;
     }
-    data.footer = deserializeGUID();
-    GUID desired_footer = new GUID(new int[16]);
-    int i = 0;
-    desired_footer.guid[i++] = 0x22;
-    desired_footer.guid[i++] = 0xa7;
-    desired_footer.guid[i++] = 0xfb;
-    desired_footer.guid[i++] = 0x71;
-
-    desired_footer.guid[i++] = 0x79;
-    desired_footer.guid[i++] = 0x0f;
-
-    desired_footer.guid[i++] = 0x0b;
-    desired_footer.guid[i++] = 0x4a;
-
-    desired_footer.guid[i++] = 0xbb;
-    desired_footer.guid[i++] = 0x13;
-    desired_footer.guid[i++] = 0x89;
-    desired_footer.guid[i++] = 0x92;
-    desired_footer.guid[i++] = 0x56;
-    desired_footer.guid[i++] = 0x42;
-    desired_footer.guid[i++] = 0x6b;
-    desired_footer.guid[i++] = 0x24;
-    if (data.footer.equals(desired_footer)) {
-      throw new RuntimeException("Invalid Constant");
-    }
+    GUID footer = deserializeGUID();
+    // TODO - the expected footer is per version of one note.
+//    if (!footer.equals(FILE_DATA_STORE_OBJ_FOOTER)) {
+//      throw new RuntimeException("Unexpected file data store object footer: " + footer);
+//    }
     return data;
   }
 

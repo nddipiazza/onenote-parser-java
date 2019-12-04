@@ -64,11 +64,11 @@ public class OneNoteParser {
     OneNoteDocument oneNoteDocument = new OneNoteDocument();
     OneNotePtr oneNotePtr = new OneNotePtr(oneNoteDocument, in, channel);
     // First parse out the header.
-    Header header = oneNotePtr.deserializeHeader();
+    oneNoteDocument.header = oneNotePtr.deserializeHeader();
 
     // Now that we parsed the header, the "root file node list"
 
-    oneNotePtr.reposition(header.fcrFileNodeListRoot);
+    oneNotePtr.reposition(oneNoteDocument.header.fcrFileNodeListRoot);
     FileNodePtr curPath = new FileNodePtr();
     oneNotePtr.deserializeFileNodeList(oneNoteDocument.root, curPath);
 

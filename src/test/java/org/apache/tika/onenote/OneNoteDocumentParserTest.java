@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 
 public class OneNoteDocumentParserTest {
@@ -26,6 +25,9 @@ public class OneNoteDocumentParserTest {
   File example1;
   File example2;
   File example3;
+
+  OneNoteTreeWalkerOptions options = new OneNoteTreeWalkerOptions()
+      .setCrawlAllRevisions(true);
 
   @Before
   public void before() throws Exception {
@@ -47,6 +49,10 @@ public class OneNoteDocumentParserTest {
     example3.delete();
   }
 
+  /**
+   * This file is when you use one-note
+   * @throws Exception
+   */
   @Test
   public void testSample1() throws Exception {
     try (FileInputStream fis = new FileInputStream(sample1File);
@@ -58,15 +64,18 @@ public class OneNoteDocumentParserTest {
 
       Pair<Long, ExtendedGUID> roleAndContext = Pair.of(1L, ExtendedGUID.nil());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      OneNoteTreeWalker walker = new OneNoteTreeWalker(oneNoteDocumentDoc, true, fis, fc, baos, roleAndContext);
+      OneNoteTreeWalker walker = new OneNoteTreeWalker(options, oneNoteDocumentDoc, fis, fc, baos, roleAndContext);
 
-      List<Map<String, Object>> outputMap = walker.walkTree();
+      Map<String, Object> outputMap = walker.walkTree();
 
       baos.close();
 
-      FileUtils.writeStringToFile(new File("test.json"), new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL).writerWithDefaultPrettyPrinter().writeValueAsString(outputMap), StandardCharsets.UTF_8);
+      LOG.info(new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL).writerWithDefaultPrettyPrinter().writeValueAsString(outputMap));
 
-      // TODO asserts
+      String txtOut = baos.toString(StandardCharsets.UTF_8.toString());
+
+      Assert.assertFalse("Should not include font names in the text", txtOut.contains("Calibri"));
+      Assert.assertFalse("Should not include UTF-16 property values that are garbage", txtOut.contains("夂菲䈿Ǡ�"));
     }
   }
 
@@ -81,15 +90,24 @@ public class OneNoteDocumentParserTest {
 
       Pair<Long, ExtendedGUID> roleAndContext = Pair.of(1L, ExtendedGUID.nil());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      OneNoteTreeWalker walker = new OneNoteTreeWalker(oneNoteDocumentDoc, true, fis, fc, baos, roleAndContext);
+      OneNoteTreeWalker walker = new OneNoteTreeWalker(options, oneNoteDocumentDoc, fis, fc, baos, roleAndContext);
 
-      List<Map<String, Object>> outputMap = walker.walkTree();
+      Map<String, Object> outputMap = walker.walkTree();
 
       baos.close();
 
-      FileUtils.writeStringToFile(new File("test.json"), new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL).writerWithDefaultPrettyPrinter().writeValueAsString(outputMap), StandardCharsets.UTF_8);
+      LOG.info(new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL).writerWithDefaultPrettyPrinter().writeValueAsString(outputMap));
 
-      // TODO asserts
+      String txtOut = baos.toString(StandardCharsets.UTF_8.toString());
+
+      Assert.assertTrue(txtOut.contains("wow this is neat"));
+      Assert.assertTrue(txtOut.contains("neat info about totally killin it bro"));
+      Assert.assertTrue(txtOut.contains("Section1TextArea1"));
+      Assert.assertTrue(txtOut.contains("Section1HeaderTitle"));
+      Assert.assertTrue(txtOut.contains("Section1TextArea2"));
+
+      Assert.assertFalse("Should not include font names in the text", txtOut.contains("Calibri"));
+      Assert.assertFalse("Should not include UTF-16 property values that are garbage", txtOut.contains("夂菲䈿Ǡ�"));
     }
   }
   @Test
@@ -103,9 +121,9 @@ public class OneNoteDocumentParserTest {
 
       Pair<Long, ExtendedGUID> roleAndContext = Pair.of(1L, ExtendedGUID.nil());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      OneNoteTreeWalker walker = new OneNoteTreeWalker(oneNoteDocumentDoc, true, fis, fc, baos, roleAndContext);
+      OneNoteTreeWalker walker = new OneNoteTreeWalker(options, oneNoteDocumentDoc, fis, fc, baos, roleAndContext);
 
-      List<Map<String, Object>> outputMap = walker.walkTree();
+      Map<String, Object> outputMap = walker.walkTree();
 
       baos.close();
 
@@ -125,9 +143,9 @@ public class OneNoteDocumentParserTest {
 
       Pair<Long, ExtendedGUID> roleAndContext = Pair.of(1L, ExtendedGUID.nil());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      OneNoteTreeWalker walker = new OneNoteTreeWalker(oneNoteDocumentDoc, true, fis, fc, baos, roleAndContext);
+      OneNoteTreeWalker walker = new OneNoteTreeWalker(options, oneNoteDocumentDoc, fis, fc, baos, roleAndContext);
 
-      List<Map<String, Object>> outputMap = walker.walkTree();
+      Map<String, Object> outputMap = walker.walkTree();
 
       baos.close();
 

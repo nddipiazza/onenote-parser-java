@@ -2,7 +2,7 @@ package org.apache.tika.onenote;
 
 import java.io.Serializable;
 
-public class Header implements Serializable {
+public class OneNoteHeader implements Serializable {
 
   GUID guidFileType;
   GUID guidFile;
@@ -37,17 +37,17 @@ public class Header implements Serializable {
   long grfDebugLogFlags;
   FileChunkReference fcrDebugLogA;
   FileChunkReference fcrDebugLogB;
-  long buildInfoA;
-  long buildInfoB;
-  long buildInfoC;
-  long buildInfoD;
+  long buildNumberCreated;
+  long buildNumberLastWroteToFile;
+  long buildNumberOldestWritten;
+  long buildNumberNewestWritten;
   byte [] reserved;
 
   public GUID getGuidFileType() {
     return guidFileType;
   }
 
-  public Header setGuidFileType(GUID guidFileType) {
+  public OneNoteHeader setGuidFileType(GUID guidFileType) {
     this.guidFileType = guidFileType;
     return this;
   }
@@ -56,7 +56,7 @@ public class Header implements Serializable {
     return guidFile;
   }
 
-  public Header setGuidFile(GUID guidFile) {
+  public OneNoteHeader setGuidFile(GUID guidFile) {
     this.guidFile = guidFile;
     return this;
   }
@@ -65,7 +65,7 @@ public class Header implements Serializable {
     return guidLegacyFileVersion;
   }
 
-  public Header setGuidLegacyFileVersion(GUID guidLegacyFileVersion) {
+  public OneNoteHeader setGuidLegacyFileVersion(GUID guidLegacyFileVersion) {
     this.guidLegacyFileVersion = guidLegacyFileVersion;
     return this;
   }
@@ -74,7 +74,7 @@ public class Header implements Serializable {
     return guidFileFormat;
   }
 
-  public Header setGuidFileFormat(GUID guidFileFormat) {
+  public OneNoteHeader setGuidFileFormat(GUID guidFileFormat) {
     this.guidFileFormat = guidFileFormat;
     return this;
   }
@@ -83,7 +83,7 @@ public class Header implements Serializable {
     return ffvLastCode;
   }
 
-  public Header setFfvLastCode(long ffvLastCode) {
+  public OneNoteHeader setFfvLastCode(long ffvLastCode) {
     this.ffvLastCode = ffvLastCode;
     return this;
   }
@@ -92,7 +92,7 @@ public class Header implements Serializable {
     return ffvNewestCode;
   }
 
-  public Header setFfvNewestCode(long ffvNewestCode) {
+  public OneNoteHeader setFfvNewestCode(long ffvNewestCode) {
     this.ffvNewestCode = ffvNewestCode;
     return this;
   }
@@ -101,7 +101,7 @@ public class Header implements Serializable {
     return ffvOldestCode;
   }
 
-  public Header setFfvOldestCode(long ffvOldestCode) {
+  public OneNoteHeader setFfvOldestCode(long ffvOldestCode) {
     this.ffvOldestCode = ffvOldestCode;
     return this;
   }
@@ -110,7 +110,7 @@ public class Header implements Serializable {
     return ffvOldestReader;
   }
 
-  public Header setFfvOldestReader(long ffvOldestReader) {
+  public OneNoteHeader setFfvOldestReader(long ffvOldestReader) {
     this.ffvOldestReader = ffvOldestReader;
     return this;
   }
@@ -119,7 +119,7 @@ public class Header implements Serializable {
     return fcrLegacyFreeChunkList;
   }
 
-  public Header setFcrLegacyFreeChunkList(FileChunkReference fcrLegacyFreeChunkList) {
+  public OneNoteHeader setFcrLegacyFreeChunkList(FileChunkReference fcrLegacyFreeChunkList) {
     this.fcrLegacyFreeChunkList = fcrLegacyFreeChunkList;
     return this;
   }
@@ -128,7 +128,7 @@ public class Header implements Serializable {
     return fcrLegacyTransactionLog;
   }
 
-  public Header setFcrLegacyTransactionLog(FileChunkReference fcrLegacyTransactionLog) {
+  public OneNoteHeader setFcrLegacyTransactionLog(FileChunkReference fcrLegacyTransactionLog) {
     this.fcrLegacyTransactionLog = fcrLegacyTransactionLog;
     return this;
   }
@@ -137,7 +137,7 @@ public class Header implements Serializable {
     return cTransactionsInLog;
   }
 
-  public Header setcTransactionsInLog(long cTransactionsInLog) {
+  public OneNoteHeader setcTransactionsInLog(long cTransactionsInLog) {
     this.cTransactionsInLog = cTransactionsInLog;
     return this;
   }
@@ -146,7 +146,7 @@ public class Header implements Serializable {
     return cbLegacyExpectedFileLength;
   }
 
-  public Header setCbLegacyExpectedFileLength(long cbLegacyExpectedFileLength) {
+  public OneNoteHeader setCbLegacyExpectedFileLength(long cbLegacyExpectedFileLength) {
     this.cbLegacyExpectedFileLength = cbLegacyExpectedFileLength;
     return this;
   }
@@ -155,7 +155,7 @@ public class Header implements Serializable {
     return rgbPlaceholder;
   }
 
-  public Header setRgbPlaceholder(long rgbPlaceholder) {
+  public OneNoteHeader setRgbPlaceholder(long rgbPlaceholder) {
     this.rgbPlaceholder = rgbPlaceholder;
     return this;
   }
@@ -164,7 +164,7 @@ public class Header implements Serializable {
     return fcrLegacyFileNodeListRoot;
   }
 
-  public Header setFcrLegacyFileNodeListRoot(FileChunkReference fcrLegacyFileNodeListRoot) {
+  public OneNoteHeader setFcrLegacyFileNodeListRoot(FileChunkReference fcrLegacyFileNodeListRoot) {
     this.fcrLegacyFileNodeListRoot = fcrLegacyFileNodeListRoot;
     return this;
   }
@@ -173,7 +173,7 @@ public class Header implements Serializable {
     return cbLegacyFreeSpaceInFreeChunkList;
   }
 
-  public Header setCbLegacyFreeSpaceInFreeChunkList(long cbLegacyFreeSpaceInFreeChunkList) {
+  public OneNoteHeader setCbLegacyFreeSpaceInFreeChunkList(long cbLegacyFreeSpaceInFreeChunkList) {
     this.cbLegacyFreeSpaceInFreeChunkList = cbLegacyFreeSpaceInFreeChunkList;
     return this;
   }
@@ -182,7 +182,7 @@ public class Header implements Serializable {
     return ignoredZeroA;
   }
 
-  public Header setIgnoredZeroA(long ignoredZeroA) {
+  public OneNoteHeader setIgnoredZeroA(long ignoredZeroA) {
     this.ignoredZeroA = ignoredZeroA;
     return this;
   }
@@ -191,7 +191,7 @@ public class Header implements Serializable {
     return ignoredZeroB;
   }
 
-  public Header setIgnoredZeroB(long ignoredZeroB) {
+  public OneNoteHeader setIgnoredZeroB(long ignoredZeroB) {
     this.ignoredZeroB = ignoredZeroB;
     return this;
   }
@@ -200,7 +200,7 @@ public class Header implements Serializable {
     return ignoredZeroC;
   }
 
-  public Header setIgnoredZeroC(long ignoredZeroC) {
+  public OneNoteHeader setIgnoredZeroC(long ignoredZeroC) {
     this.ignoredZeroC = ignoredZeroC;
     return this;
   }
@@ -209,7 +209,7 @@ public class Header implements Serializable {
     return ignoredZeroD;
   }
 
-  public Header setIgnoredZeroD(long ignoredZeroD) {
+  public OneNoteHeader setIgnoredZeroD(long ignoredZeroD) {
     this.ignoredZeroD = ignoredZeroD;
     return this;
   }
@@ -218,7 +218,7 @@ public class Header implements Serializable {
     return guidAncestor;
   }
 
-  public Header setGuidAncestor(GUID guidAncestor) {
+  public OneNoteHeader setGuidAncestor(GUID guidAncestor) {
     this.guidAncestor = guidAncestor;
     return this;
   }
@@ -227,7 +227,7 @@ public class Header implements Serializable {
     return crcName;
   }
 
-  public Header setCrcName(long crcName) {
+  public OneNoteHeader setCrcName(long crcName) {
     this.crcName = crcName;
     return this;
   }
@@ -236,7 +236,7 @@ public class Header implements Serializable {
     return fcrHashedChunkList;
   }
 
-  public Header setFcrHashedChunkList(FileChunkReference fcrHashedChunkList) {
+  public OneNoteHeader setFcrHashedChunkList(FileChunkReference fcrHashedChunkList) {
     this.fcrHashedChunkList = fcrHashedChunkList;
     return this;
   }
@@ -245,7 +245,7 @@ public class Header implements Serializable {
     return fcrTransactionLog;
   }
 
-  public Header setFcrTransactionLog(FileChunkReference fcrTransactionLog) {
+  public OneNoteHeader setFcrTransactionLog(FileChunkReference fcrTransactionLog) {
     this.fcrTransactionLog = fcrTransactionLog;
     return this;
   }
@@ -254,7 +254,7 @@ public class Header implements Serializable {
     return fcrFileNodeListRoot;
   }
 
-  public Header setFcrFileNodeListRoot(FileChunkReference fcrFileNodeListRoot) {
+  public OneNoteHeader setFcrFileNodeListRoot(FileChunkReference fcrFileNodeListRoot) {
     this.fcrFileNodeListRoot = fcrFileNodeListRoot;
     return this;
   }
@@ -263,7 +263,7 @@ public class Header implements Serializable {
     return fcrFreeChunkList;
   }
 
-  public Header setFcrFreeChunkList(FileChunkReference fcrFreeChunkList) {
+  public OneNoteHeader setFcrFreeChunkList(FileChunkReference fcrFreeChunkList) {
     this.fcrFreeChunkList = fcrFreeChunkList;
     return this;
   }
@@ -272,7 +272,7 @@ public class Header implements Serializable {
     return cbExpectedFileLength;
   }
 
-  public Header setCbExpectedFileLength(long cbExpectedFileLength) {
+  public OneNoteHeader setCbExpectedFileLength(long cbExpectedFileLength) {
     this.cbExpectedFileLength = cbExpectedFileLength;
     return this;
   }
@@ -281,7 +281,7 @@ public class Header implements Serializable {
     return cbFreeSpaceInFreeChunkList;
   }
 
-  public Header setCbFreeSpaceInFreeChunkList(long cbFreeSpaceInFreeChunkList) {
+  public OneNoteHeader setCbFreeSpaceInFreeChunkList(long cbFreeSpaceInFreeChunkList) {
     this.cbFreeSpaceInFreeChunkList = cbFreeSpaceInFreeChunkList;
     return this;
   }
@@ -290,7 +290,7 @@ public class Header implements Serializable {
     return guidFileVersion;
   }
 
-  public Header setGuidFileVersion(GUID guidFileVersion) {
+  public OneNoteHeader setGuidFileVersion(GUID guidFileVersion) {
     this.guidFileVersion = guidFileVersion;
     return this;
   }
@@ -299,7 +299,7 @@ public class Header implements Serializable {
     return nFileVersionGeneration;
   }
 
-  public Header setnFileVersionGeneration(long nFileVersionGeneration) {
+  public OneNoteHeader setnFileVersionGeneration(long nFileVersionGeneration) {
     this.nFileVersionGeneration = nFileVersionGeneration;
     return this;
   }
@@ -308,7 +308,7 @@ public class Header implements Serializable {
     return guidDenyReadFileVersion;
   }
 
-  public Header setGuidDenyReadFileVersion(GUID guidDenyReadFileVersion) {
+  public OneNoteHeader setGuidDenyReadFileVersion(GUID guidDenyReadFileVersion) {
     this.guidDenyReadFileVersion = guidDenyReadFileVersion;
     return this;
   }
@@ -317,7 +317,7 @@ public class Header implements Serializable {
     return grfDebugLogFlags;
   }
 
-  public Header setGrfDebugLogFlags(long grfDebugLogFlags) {
+  public OneNoteHeader setGrfDebugLogFlags(long grfDebugLogFlags) {
     this.grfDebugLogFlags = grfDebugLogFlags;
     return this;
   }
@@ -326,7 +326,7 @@ public class Header implements Serializable {
     return fcrDebugLogA;
   }
 
-  public Header setFcrDebugLogA(FileChunkReference fcrDebugLogA) {
+  public OneNoteHeader setFcrDebugLogA(FileChunkReference fcrDebugLogA) {
     this.fcrDebugLogA = fcrDebugLogA;
     return this;
   }
@@ -335,44 +335,44 @@ public class Header implements Serializable {
     return fcrDebugLogB;
   }
 
-  public Header setFcrDebugLogB(FileChunkReference fcrDebugLogB) {
+  public OneNoteHeader setFcrDebugLogB(FileChunkReference fcrDebugLogB) {
     this.fcrDebugLogB = fcrDebugLogB;
     return this;
   }
 
-  public long getBuildInfoA() {
-    return buildInfoA;
+  public long getBuildNumberCreated() {
+    return buildNumberCreated;
   }
 
-  public Header setBuildInfoA(long buildInfoA) {
-    this.buildInfoA = buildInfoA;
+  public OneNoteHeader setBuildNumberCreated(long buildNumberCreated) {
+    this.buildNumberCreated = buildNumberCreated;
     return this;
   }
 
-  public long getBuildInfoB() {
-    return buildInfoB;
+  public long getBuildNumberLastWroteToFile() {
+    return buildNumberLastWroteToFile;
   }
 
-  public Header setBuildInfoB(long buildInfoB) {
-    this.buildInfoB = buildInfoB;
+  public OneNoteHeader setBuildNumberLastWroteToFile(long buildNumberLastWroteToFile) {
+    this.buildNumberLastWroteToFile = buildNumberLastWroteToFile;
     return this;
   }
 
-  public long getBuildInfoC() {
-    return buildInfoC;
+  public long getBuildNumberOldestWritten() {
+    return buildNumberOldestWritten;
   }
 
-  public Header setBuildInfoC(long buildInfoC) {
-    this.buildInfoC = buildInfoC;
+  public OneNoteHeader setBuildNumberOldestWritten(long buildNumberOldestWritten) {
+    this.buildNumberOldestWritten = buildNumberOldestWritten;
     return this;
   }
 
-  public long getBuildInfoD() {
-    return buildInfoD;
+  public long getBuildNumberNewestWritten() {
+    return buildNumberNewestWritten;
   }
 
-  public Header setBuildInfoD(long buildInfoD) {
-    this.buildInfoD = buildInfoD;
+  public OneNoteHeader setBuildNumberNewestWritten(long buildNumberNewestWritten) {
+    this.buildNumberNewestWritten = buildNumberNewestWritten;
     return this;
   }
 
@@ -380,51 +380,8 @@ public class Header implements Serializable {
     return reserved;
   }
 
-  public Header setReserved(byte[] reserved) {
+  public OneNoteHeader setReserved(byte[] reserved) {
     this.reserved = reserved;
     return this;
-  }
-
-  @Override
-  public String toString() {
-    return "Header{" +
-      "guidFileType=" + guidFileType +
-      ", guidFile=" + guidFile +
-      ", guidLegacyFileVersion=" + guidLegacyFileVersion +
-      ", guidFileFormat=" + guidFileFormat +
-      ", ffvLastCode=" + ffvLastCode +
-      ", ffvNewestCode=" + ffvNewestCode +
-      ", ffvOldestCode=" + ffvOldestCode +
-      ", ffvOldestReader=" + ffvOldestReader +
-      ", fcrLegacyFreeChunkList=" + fcrLegacyFreeChunkList +
-      ", fcrLegacyTransactionLog=" + fcrLegacyTransactionLog +
-      ", cTransactionsInLog=" + cTransactionsInLog +
-      ", cbLegacyExpectedFileLength=" + cbLegacyExpectedFileLength +
-      ", rgbPlaceholder=" + rgbPlaceholder +
-      ", fcrLegacyFileNodeListRoot=" + fcrLegacyFileNodeListRoot +
-      ", cbLegacyFreeSpaceInFreeChunkList=" + cbLegacyFreeSpaceInFreeChunkList +
-      ", ignoredZeroA=" + ignoredZeroA +
-      ", ignoredZeroB=" + ignoredZeroB +
-      ", ignoredZeroC=" + ignoredZeroC +
-      ", ignoredZeroD=" + ignoredZeroD +
-      ", guidAncestor=" + guidAncestor +
-      ", crcName=" + crcName +
-      ", fcrHashedChunkList=" + fcrHashedChunkList +
-      ", fcrTransactionLog=" + fcrTransactionLog +
-      ", fcrFileNodeListRoot=" + fcrFileNodeListRoot +
-      ", fcrFreeChunkList=" + fcrFreeChunkList +
-      ", cbExpectedFileLength=" + cbExpectedFileLength +
-      ", cbFreeSpaceInFreeChunkList=" + cbFreeSpaceInFreeChunkList +
-      ", guidFileVersion=" + guidFileVersion +
-      ", nFileVersionGeneration=" + nFileVersionGeneration +
-      ", guidDenyReadFileVersion=" + guidDenyReadFileVersion +
-      ", grfDebugLogFlags=" + grfDebugLogFlags +
-      ", fcrDebugLogA=" + fcrDebugLogA +
-      ", fcrDebugLogB=" + fcrDebugLogB +
-      ", buildInfoA=" + buildInfoA +
-      ", buildInfoB=" + buildInfoB +
-      ", buildInfoC=" + buildInfoC +
-      ", buildInfoD=" + buildInfoD +
-      '}';
   }
 }
