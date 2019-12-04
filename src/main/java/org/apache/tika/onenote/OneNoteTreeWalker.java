@@ -20,6 +20,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Walk the one note tree and create a Map while it goes.
+ * Also writes user input text to a print writer as it parses.
+ */
 public class OneNoteTreeWalker implements AutoCloseable {
 
   private OneNoteTreeWalkerOptions options;
@@ -29,6 +33,17 @@ public class OneNoteTreeWalker implements AutoCloseable {
   private SeekableByteChannel channel;
   private Pair<Long, ExtendedGUID> roleAndContext;
 
+  /**
+   * Create a one tree walker.
+   * @param options The options for how to walk this tree.
+   * @param oneNoteDocument The one note document we want to walk.
+   * @param in The input stream pointing to the stream of one note text.
+   * @param channel The seekable byte channel that accompanies the input stream. This is used extensively to
+   *                reset the position of the stream parsing while the parse occurs.
+   * @param out An output stream that we will use a print writer to write to.
+   * @param roleAndContext The role and context value we want to use when crawling. Set this to null if you are
+   *                       crawling all root file nodes, and don't care about revisions.
+   */
   public OneNoteTreeWalker(OneNoteTreeWalkerOptions options, OneNoteDocument oneNoteDocument,
                            InputStream in, SeekableByteChannel channel, OutputStream out,
                            Pair<Long, ExtendedGUID> roleAndContext) {
@@ -40,6 +55,11 @@ public class OneNoteTreeWalker implements AutoCloseable {
     this.roleAndContext = roleAndContext;
   }
 
+  /**
+   * Parse the tree.
+   * @return Map of the fully parsed one note document.
+   * @throws IOException Can throw these when manipulating the seekable byte channel.
+   */
   public Map<String, Object> walkTree() throws IOException {
     Map<String, Object> structure = new HashMap<>();
     structure.put("header", oneNoteDocument.header);
@@ -47,26 +67,45 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return structure;
   }
 
+  /**
+   * Walk the root file nodes, depending on the options will crawl revisions or the entire revision tree.
+   * @return List of the root file nodes.
+   * @throws IOException Can throw these when manipulating the seekable byte channel.
+   */
   public List<Map<String, Object>> walkRootFileNodes() throws IOException {
     List<Map<String, Object>> res = new ArrayList<>();
-    // TODO - This does not seem to get all the data. Will just crawl everything at the root for now.
-//        for (ExtendedGUID revisionListGuid : oneNoteDocument.revisionListOrder) {
-//          Map<String, Object> structure = new HashMap<>();
-//          structure.put("oneNoteType", "Revision");
-//          structure.put("revisionListGuid", revisionListGuid.toString());
-//          FileNodePtr fileNodePtr = oneNoteDocument.revisionManifestLists.get(revisionListGuid);
-//          structure.put("fileNode", walkRevision(fileNodePtr));
-//          res.add(structure);
-//        }
-    res.add(walkFileNodeList(oneNoteDocument.root));
+    if (options.isCrawlAllFileNodesFromRoot()) {
+      res.add(walkFileNodeList(oneNoteDocument.root));
+    } else {
+      for (ExtendedGUID revisionListGuid : oneNoteDocument.revisionListOrder) {
+        Map<String, Object> structure = new HashMap<>();
+        structure.put("oneNoteType", "Revision");
+        structure.put("revisionListGuid", revisionListGuid.toString());
+        FileNodePtr fileNodePtr = oneNoteDocument.revisionManifestLists.get(revisionListGuid);
+        structure.put("fileNode", walkRevision(fileNodePtr));
+        res.add(structure);
+      }
+    }
     return res;
   }
 
-  boolean hasRevisionRole(ExtendedGUID rid, Pair<Long, ExtendedGUID> revisionRole) {
+  /**
+   * Does the revision role map have this revision role id.
+   * @param rid The revision id.
+   * @param revisionRole The revision role Long,GUID pair.
+   * @return True if exists, false if not.
+   */
+  private boolean hasRevisionRole(ExtendedGUID rid, Pair<Long, ExtendedGUID> revisionRole) {
     Collection<Pair<Long, ExtendedGUID>> where = oneNoteDocument.revisionRoleMap.get(rid);
     return where.contains(revisionRole);
   }
 
+  /**
+   * Walk revisions.
+   * @param fileNodePtr The file node pointer to start with.
+   * @return A map of the parsed data.
+   * @throws IOException Can throw these when manipulating the seekable byte channel.
+   */
   private Map<String, Object> walkRevision(FileNodePtr fileNodePtr) throws IOException {
     Map<String, Object> structure = new HashMap<>();
     structure.put("oneNoteType", "FileNodePointer");
@@ -116,6 +155,12 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return structure;
   }
 
+  /**
+   * Walk the file node pointer.
+   * @param fileNodePtr The file node pointer.
+   * @return Returns a map of the main data.
+   * @throws IOException Can throw these when manipulating the seekable byte channel.
+   */
   public Map<String, Object> walkFileNodePtr(FileNodePtr fileNodePtr) throws IOException {
     if (fileNodePtr != null) {
       FileNode fileNode = fileNodePtr.dereference(oneNoteDocument);
@@ -124,6 +169,12 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return Collections.emptyMap();
   }
 
+  /**
+   * Walk the file node list.
+   * @param fileNodeList The file node list to parse.
+   * @return The result.
+   * @throws IOException Can throw these when manipulating the seekable byte channel.
+   */
   public Map<String, Object> walkFileNodeList(FileNodeList fileNodeList) throws IOException {
     Map<String, Object> structure = new HashMap<>();
     structure.put("oneNoteType", "FileNodeList");
@@ -138,6 +189,12 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return structure;
   }
 
+  /**
+   * Walk a single file node.
+   * @param fileNode The file node.
+   * @return Map which is result of the parsed file node.
+   * @throws IOException Can throw these when manipulating the seekable byte channel.
+   */
   public Map<String, Object> walkFileNode(FileNode fileNode) throws IOException {
     Map<String, Object> structure = new HashMap<>();
     structure.put("oneNoteType", "FileNode");
@@ -164,6 +221,12 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return structure;
   }
 
+  /**
+   * Walk a file data store object reference.
+   * @param fileDataStoreObjectReference The file data store object reference we are parsing.
+   * @return Map containing parsed content.
+   * @throws IOException Can throw these when manipulating the seekable byte channel.
+   */
   private Map<String, Object> walkFileDataStoreObjectReference(FileDataStoreObjectReference fileDataStoreObjectReference) throws IOException {
     Map<String, Object> structure = new HashMap<>();
     OneNotePtr content = new OneNotePtr(oneNoteDocument, in, channel);
@@ -175,6 +238,12 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return structure;
   }
 
+  /**
+   *
+   * @param propertySet
+   * @return
+   * @throws IOException Can throw these when manipulating the seekable byte channel.
+   */
   private List<Map<String, Object>> processPropertySet(PropertySet propertySet) throws IOException {
     List<Map<String, Object>> propValues = new ArrayList<>();
     for (PropertyValue propertyValue : propertySet.rgPridsData) {
@@ -183,12 +252,26 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return propValues;
   }
 
+  /**
+   * Is this property a binary property?
+   * @param property The property.
+   * @return Is it binary?
+   */
   private boolean propertyIsBinary(OneNotePropertyEnum property) {
     return property == OneNotePropertyEnum.RgOutlineIndentDistance ||
         property == OneNotePropertyEnum.NotebookManagementEntityGuid ||
         property == OneNotePropertyEnum.RichEditTextUnicode;
   }
 
+  /**
+   * Process a property value and populate a map containing all the property value data.
+   *
+   * Parse out any relevant text and write it to the print writer as well for easy search engine parsing.
+   *
+   * @param propertyValue The property value we are parsing.
+   * @return The map parsed by this property value.
+   * @throws IOException Can throw these when manipulating the seekable byte channel.
+   */
   private Map<String, Object> processPropertyValue(PropertyValue propertyValue) throws IOException {
     Map<String, Object> propMap = new HashMap<>();
     propMap.put("oneNoteType", "PropertyValue");
@@ -251,8 +334,11 @@ public class OneNoteTreeWalker implements AutoCloseable {
     return propMap;
   }
 
+  /**
+   * Close the print writer.
+   */
   @Override
-  public void close() throws Exception {
+  public void close() {
     printWriter.close();
   }
 }
